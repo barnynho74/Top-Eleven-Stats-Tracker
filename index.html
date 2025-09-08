@@ -57,9 +57,9 @@
         .card-tags-container{display:flex;gap:4px;margin-left:8px;}
         .card-tag{width:16px;height:16px;border-radius:50%;cursor:pointer;border:1px solid #ccc;background-color:#f0f0f0;transition:all .2s;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:bold;color:#aaa;}
         .card-tag.active{color:white;}
-        #minutaza-content table, #goals-assists-content table{width:100%;border-collapse:collapse;margin-top:20px;font-size:13px;}
-        #minutaza-content th,#goals-assists-content th,#minutaza-content td,#goals-assists-content td{border:1px solid #ddd;padding:6px;text-align:left;}
-        #minutaza-content th,#goals-assists-content th{background-color:#f2f2f2;}
+        #minutes-content table, #goals-assists-content table{width:100%;border-collapse:collapse;margin-top:20px;font-size:13px;}
+        #minutes-content th,#goals-assists-content th,#minutes-content td,#goals-assists-content td{border:1px solid #ddd;padding:6px;text-align:left;}
+        #minutes-content th,#goals-assists-content th{background-color:#f2f2f2;}
         .bottom-actions{margin-top:15px;display:flex;justify-content:flex-end;}
         .age-all-btn{background-color:#17a2b8;color:#fff;border:none;border-radius:4px;padding:8px 15px;font-size:13px;cursor:pointer;}
         .end-season-btn{background-color:#c82333;color:#fff;border:none;border-radius:4px;padding:8px 15px;font-size:13px;cursor:pointer;margin-left:10px;}
@@ -106,7 +106,7 @@
         }
         
         /* Player name styling */
-        #minutaza-table tbody tr.selected {
+        #minutes-table tbody tr.selected {
             background-color: #d1ecf1 !important; /* A light blue for selection */
             outline-style: dashed;
         }
@@ -237,14 +237,14 @@
 </head>
 <body>
     <div class="top-bar">
-        <div class="tab active" data-tab="napredak">NAPREDAK</div>
-        <div class="tab" data-tab="minutaza">MINUTAŽA</div>
+        <div class="tab active" data-tab="progress">PROGRESS</div>
+        <div class="tab" data-tab="minutes">MINUTES</div>
         <div class="tab" data-tab="goals-assists">GOALS-ASSISTS</div>
         <div class="tab" data-tab="most-improved">MOST IMPROVED</div>
         <div class="tab" data-tab="power-ranking">POWER RANKING</div>
         <div class="tab" data-tab="archived-players">ARCHIVED PLAYERS</div>
     </div>
-    <div id="napredak-content" class="content active">
+    <div id="progress-content" class="content active">
         <button class="add-player-btn" id="add-player-btn">+</button>
         <div class="squad-average">
             Average quality: <span id="avg-quality">--</span>%<br>
@@ -252,7 +252,7 @@
             Average age: <span id="avg-age">--</span>
         </div>
         <div class="player-list" id="player-list"></div>
-        <div class="bottom-actions"><button class="age-all-btn" id="age-all-btn">+1 godina svim igračima</button><button class="end-season-btn" id="end-season-btn">End Season & Archive</button></div>
+        <div class="bottom-actions"><button class="age-all-btn" id="age-all-btn">+1 Year to All Players</button><button class="end-season-btn" id="end-season-btn">End Season & Archive</button></div>
         <hr style="margin: 20px 0;">
         <div id="archive-section">
             <h2>Season Archives & Data Management</h2>
@@ -266,8 +266,8 @@
             </div>
         </div>
     </div>
-    <div id="minutaza-content" class="content">
-        <h2>Minutaža</h2>
+    <div id="minutes-content" class="content">
+        <h2>Minutes</h2>
         <div class="minutes-form">
             <h3>Add Minutes for Current Match</h3>
             <div class="minutes-controls">
@@ -277,7 +277,7 @@
                 <button class="reset-minutes-btn" id="undo-minutes-btn">Undo Last Change</button>
             </div>
         </div>
-        <table id="minutaza-table">
+        <table id="minutes-table">
             <thead>
                 <tr>
                     <th>Player</th>
@@ -359,7 +359,7 @@
             </table>
             <div class="training-actions">
                 <div class="training-summary">
-                    <p>Umor igrača mora biti između: <span id="training-range"></span></p>
+                    <p>Player fatigue must be between: <span id="training-range"></span></p>
                 </div>
                 <button class="reset-training-btn" id="reset-training-btn">Reset</button>
             </div>
@@ -403,7 +403,7 @@ PowerScore = (0.15 × CurrentQuality) + (0.25 × ImprovementScore) + (0.30 × Ad
                 <li><strong>Midfielders (MCs, ML/R, DMC):</strong> <code>Goal = 1.3 pts</code>, <code>Assist = 1.0 pts</code></li>
                 <li><strong>Defenders (DCs, DL/R, GK):</strong> <code>Goal = 1.6 pts</code>, <code>Assist = 1.2 pts</code></li>
             </ul>
-            <h4>5. Usage Score (20%)</h4>
+            <h4>4. Usage Score (20%)</h4>
             <div class="formula">UsageScore = (Total Goals + Total Assists) per 90 minutes</div>
             <p>A straightforward measure of a player's direct involvement in goals, based on their time on the pitch.</p>
             <h4>5. Age Value (10%)</h4>
@@ -483,7 +483,7 @@ PowerScore = (0.15 × CurrentQuality) + (0.25 × ImprovementScore) + (0.30 × Ad
             </div>
         </div>
     </div>
-    <!-- Confirm delete modal (kept for code simplicity, but no longer used for napredak tab) -->
+    
     <div class="confirm-modal" id="confirm-modal">
         <div class="confirm-content">
             <h3>Delete Player</h3>
@@ -505,7 +505,7 @@ PowerScore = (0.15 × CurrentQuality) + (0.25 × ImprovementScore) + (0.30 × Ad
             const tabName=this.dataset.tab;
             document.querySelectorAll('.content').forEach(c=>c.classList.remove('active'));
             document.getElementById(`${tabName}-content`).classList.add('active');
-            if(tabName==='minutaza')updateMinutesTable();
+            if(tabName==='minutes')updateMinutesTable();
             else if(tabName==='goals-assists')updateGoalsAssistsTable();
             else if(tabName==='most-improved')updateMostImprovedTable();
             else if(tabName==='power-ranking')updatePowerRankingTable();
@@ -1016,7 +1016,7 @@ PowerScore = (0.15 × CurrentQuality) + (0.25 × ImprovementScore) + (0.30 × Ad
             event.target.value = '';
         }
         
-        function updateMinutesTable(){const tbody=document.querySelector('#minutaza-table tbody');tbody.innerHTML='';
+        function updateMinutesTable(){const tbody=document.querySelector('#minutes-table tbody');tbody.innerHTML='';
             const allMinutes=players.map(p=>(p.totalMinutes||0));
             const maxMinutes=Math.max(...allMinutes);
             const minMinutes=Math.min(...allMinutes);
@@ -1549,7 +1549,7 @@ const header = e.target.closest('th');
             const newOrder = currentOrder === 'desc' ? 'asc' : 'desc';
             updatePowerRankingTable(sortBy, newOrder);
         });
-        document.getElementById('minutaza-table').addEventListener('click',function(e){
+        document.getElementById('minutes-table').addEventListener('click',function(e){
             if(e.target.classList.contains('reset-player-minutes-btn')){
                 const playerId=parseInt(e.target.dataset.playerId);
                 const player=players.find(p=>p.id===playerId);
