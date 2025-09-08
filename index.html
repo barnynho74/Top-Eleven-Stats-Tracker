@@ -1,0 +1,1602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Top Eleven Stats Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+            --gk-color:#add8e6;
+            --def-color:#90ee90;
+            --mid-color:#ffff99;
+            --att-color:#ff9999;
+        }
+        body{font-family:Arial,sans-serif;margin:0;padding:0;background-color:#f5f5f5;}
+        .top-bar{display:flex;background-color:#333;color:#fff;padding:10px 0;}
+        .tab{flex:1;text-align:center;padding:10px;cursor:pointer;transition:background-color .3s;}
+        .tab:hover{background-color:#555;}
+        .tab.active{background-color:#007bff;font-weight:bold;}
+        .content{padding:20px;display:none;}
+        .content.active{display:block;}
+        .player-list{display:flex;flex-direction:column;gap:8px;}
+        .player-card{background-color:#fff;border-radius:5px;padding:8px;box-shadow:0 2px 4px rgba(0,0,0,.1);display:flex;align-items:center;font-size:13px;}
+        .player-info{flex:1;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+        .position-label{padding:2px 6px;border-radius:3px;font-weight:bold;font-size:11px;color:#000;}
+        .gk{background-color:var(--gk-color);} .def{background-color:var(--def-color);} .mid{background-color:var(--mid-color);} .att{background-color:var(--att-color);}
+        .weeks-container{display:flex;flex-direction:row;margin-left:15px;}
+        .week-header{display:block;align-items:center;margin-bottom:5px;}
+        .week-label{font-weight:bold;font-size:12px;margin-right:10px;min-width:60px;color:#333;}
+        .days-header{display:flex;font-size:11px;}
+        .day-cell{width:25px;text-align:center;font-size:11px;border:1px solid #ddd;padding:1px;}
+        .player-days{display:flex;}
+        .player-day-input{width:25px;height:18px;text-align:center;border:1px solid #ddd;padding:1px;font-size:11px;}
+.day-average{width:25px;text-align:center;font-size:9px;color:#666;height:18px;line-height:18px;border:1px solid transparent;padding:1px;box-sizing:content-box;}
+        .week-divider{border-left:2px solid #007bff;margin:0 5px;height:20px;}
+        .add-player-btn{background-color:#28a745;color:#fff;border:none;border-radius:50%;width:30px;height:30px;font-size:20px;cursor:pointer;margin:10px 0;display:flex;align-items:center;justify-content:center;}
+        .squad-average{font-weight:bold;margin:0 0 10px 5px;}
+        .modal,.confirm-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background-color:rgba(0,0,0,.5);z-index:100;justify-content:center;align-items:center;}
+        .modal-content,.confirm-content{background-color:#fff;padding:20px;border-radius:5px;width:320px;max-height:80vh;overflow-y:auto;}
+        .form-group{margin-bottom:15px;} .form-group label{display:block;margin-bottom:5px;font-weight:bold;}
+        .form-group input,.form-group select{width:100%;padding:8px;box-sizing:border-box;border:1px solid #ddd;border-radius:3px;}
+        .modal-buttons{display:flex;justify-content:flex-end;gap:10px;}
+        .modal-buttons button{padding:8px 15px;border:none;border-radius:3px;cursor:pointer;}
+        .save-btn{background-color:#28a745;color:#fff;} .cancel-btn{background-color:#dc3545;color:#fff;}
+        .edit-btn{background-color:#ffc107;color:#000;border-radius:3px;padding:4px 8px;font-size:11px;margin-left:8px;}
+        .delete-btn{background-color:#dc3545;color:#fff;border-radius:3px;padding:4px 8px;font-size:11px;margin-left:8px;}
+        .favorite-star{font-size:18px;cursor:pointer;margin-left:auto;color:#ccc;transition:color .2s;}
+        .favorite-star.favorited{color:#ffc107;}
+        .card-tags-container{display:flex;gap:4px;margin-left:8px;}
+        .card-tag{width:16px;height:16px;border-radius:50%;cursor:pointer;border:1px solid #ccc;background-color:#f0f0f0;transition:all .2s;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:bold;color:#aaa;}
+        .card-tag.active{color:white;}
+        #minutaza-content table, #goals-assists-content table{width:100%;border-collapse:collapse;margin-top:20px;font-size:13px;}
+        #minutaza-content th,#goals-assists-content th,#minutaza-content td,#goals-assists-content td{border:1px solid #ddd;padding:6px;text-align:left;}
+        #minutaza-content th,#goals-assists-content th{background-color:#f2f2f2;}
+        .bottom-actions{margin-top:15px;display:flex;justify-content:flex-end;}
+        .age-all-btn{background-color:#17a2b8;color:#fff;border:none;border-radius:4px;padding:8px 15px;font-size:13px;cursor:pointer;}
+        .end-season-btn{background-color:#c82333;color:#fff;border:none;border-radius:4px;padding:8px 15px;font-size:13px;cursor:pointer;margin-left:10px;}
+        .minutes-controls{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;}
+        .full-match-btn{background-color:#28a745;color:#fff;border:none;border-radius:4px;padding:8px 15px;cursor:pointer;}
+        .minutes-input{width:60px;padding:8px;border:1px solid #ddd;border-radius:4px;}
+        .confirm-minutes-btn{background-color:#007bff;color:#fff;border:none;border-radius:4px;padding:8px 15px;cursor:pointer;}
+        .reset-minutes-btn{background-color:#dc3545;color:#fff;border:none;border-radius:4px;padding:4px 8px;font-size:11px;cursor:pointer;}
+        .reset-player-minutes-btn{background-color:#ffc107;color:#000;border:none;border-radius:3px;padding:2px 6px;font-size:10px;cursor:pointer;}
+        .minutes-form{margin-top:20px;padding:15px;background-color:#f8f9fa;border-radius:5px;}
+        .star-rating{position:relative;display:inline-block;font-size:14px;line-height:1;}
+        .star-rating .stars-outer{color:#ccc;} .star-rating .stars-inner{position:absolute;top:0;left:0;white-space:nowrap;overflow:hidden;color:#f5b301;}
+        /* Resizable container for GA table */
+        .table-container{resize:both;overflow:auto;max-width:100%;border:1px solid #ccc;padding-bottom:4px;}
+        .ga-control{display:flex;align-items:center;justify-content:center;gap:5px;}
+        .ga-btn{background-color:#007bff;color:white;border:none;border-radius:50%;width:22px;height:22px;font-size:16px;font-weight:bold;cursor:pointer;line-height:22px;padding:0;}
+        .ga-btn.minus{background-color:#6c757d;}
+        .ga-value{font-weight:bold;font-size:14px;min-width:20px;text-align:center;}
+        
+        /* Competition colors */
+        .league-header{background-color:#ffebee !important;color:#c62828;}
+        .cl-header{background-color:#e3f2fd !important;color:#1565c0;}
+        .cup-header{background-color:#e8f5e8 !important;color:#2e7d32;}
+        
+        /* Section separators */
+        .stats-separator{border-left:3px solid #333 !important;}
+        .per90-separator{border-left:3px solid #666 !important;}
+        .league-color { color: #c62828; font-weight: bold; }
+        .cl-color { color: #1565c0; font-weight: bold; }
+        .cup-color { color: #2e7d32; font-weight: bold; }
+        
+        /* Enhanced table styling */
+        #goals-assists-table th{
+            font-weight:bold;
+            font-size:12px;
+        }
+        #goals-assists-table .competition-section{
+            position:relative;
+        }
+        
+        /* Player name styling */
+        .player-name-bold {
+            font-weight: bold;
+        }
+        
+        /* Player name styling */
+        #minutaza-table tbody tr.selected {
+            background-color: #d1ecf1 !important; /* A light blue for selection */
+            outline-style: dashed;
+        }
+        .training-calculator{background:#fff;border:1px solid #e9e9e9;border-radius:8px;padding:15px;margin-bottom:20px;max-width:400px;box-shadow:0 2px 4px rgba(0,0,0,.05);}
+        .training-calculator h3{margin-top:0;text-align:center;font-size:16px;color:#333;}
+        #training-table{width:100%;border-collapse:collapse;margin-bottom:10px;}
+        #training-table td{padding:6px;border:1px solid #ddd;font-size:13px;}
+        #training-table td:first-child{font-weight:bold;color:#555;}
+        .training-input{width:100%;box-sizing:border-box;text-align:center;border:1px solid #ccc;border-radius:3px;padding:4px;}
+        .training-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        .reset-training-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .note-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+        .note-tag-btn{background-color:#f0f0f0;color:#333;border:1px solid #ccc;border-radius:12px;padding:3px 10px;font-size:11px;cursor:pointer;transition:all .2s;}
+        .note-tag-btn.active{font-weight:bold;}
+        .data-io-buttons{margin-bottom:15px;display:flex;gap:10px;}
+.data-io-buttons button{background-color:#6c757d;color:white;border:none;padding:8px 12px;border-radius:4px;cursor:pointer;font-size:13px;}
+#most-improved-table th { cursor: pointer; user-select: none; }
+#most-improved-table th:hover { background-color: #e9ecef; }
+#most-improved-table th .sort-indicator {
+    display: inline-block;
+    margin-left: 5px;
+    opacity: 0.5;
+    transition: opacity 0.2s, transform 0.2s;
+}
+#most-improved-table th .sort-indicator.asc { opacity: 1; transform: rotate(180deg); }
+#most-improved-table th .sort-indicator.desc { opacity: 1; transform: rotate(0deg); }
+.chart-container {
+            margin-top: 25px;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            border: 1px solid #e9e9e9;
+        }
+        .chart-container h3 {
+            margin-top: 0;
+            text-align: center;
+            font-size: 16px;
+            color: #333;
+        }
+/* Add style for new archive button */
+        .archive-btn{
+            background-color:#28a745;
+            color:#fff;
+            border-radius:3px;
+            border: 2px solid black;
+            padding:4px 8px;
+            font-size:11px;
+            margin-left:8px;
+            cursor:pointer;
+        }
+        /* Archive tab styling */
+        #archived-players-content .player-card {
+            opacity: 0.8;
+        }
+        #archived-players-content .player-card .archive-btn {
+            display: none;
+        }
+        .top-score {
+            background-color: #d4edda;
+            color: #155724;
+            font-weight: bold;
+        }
+        .formula-explanation {
+            margin-top: 25px;
+            padding: 20px;
+            background-color: #fff;
+            border: 1px solid #e9e9e9;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,.05);
+            font-size: 14px;
+            line-height: 1.6;
+            max-width: 90%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .formula-explanation h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 18px;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .formula-explanation .formula {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            color: #333;
+            border: 1px solid #e9ecef;
+        }
+        .formula-explanation h4 {
+            font-size: 15px;
+            color: #007bff;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        .formula-explanation ul {
+            list-style-type: none;
+            padding-left: 15px;
+        }
+        .formula-explanation li {
+            margin-bottom: 8px;
+        }
+        .formula-explanation code {
+            background-color: #e9ecef;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <div class="tab active" data-tab="napredak">NAPREDAK</div>
+        <div class="tab" data-tab="minutaza">MINUTAŽA</div>
+        <div class="tab" data-tab="goals-assists">GOALS-ASSISTS</div>
+        <div class="tab" data-tab="most-improved">MOST IMPROVED</div>
+        <div class="tab" data-tab="power-ranking">POWER RANKING</div>
+        <div class="tab" data-tab="archived-players">ARCHIVED PLAYERS</div>
+    </div>
+    <div id="napredak-content" class="content active">
+        <button class="add-player-btn" id="add-player-btn">+</button>
+        <div class="squad-average">
+            Average quality: <span id="avg-quality">--</span>%<br>
+            Squad size: <span id="squad-count">0</span> players<br>
+            Average age: <span id="avg-age">--</span>
+        </div>
+        <div class="player-list" id="player-list"></div>
+        <div class="bottom-actions"><button class="age-all-btn" id="age-all-btn">+1 godina svim igračima</button><button class="end-season-btn" id="end-season-btn">End Season & Archive</button></div>
+        <hr style="margin: 20px 0;">
+        <div id="archive-section">
+            <h2>Season Archives & Data Management</h2>
+            <div class="data-io-buttons">
+                <button id="download-data-btn">Download All Data</button>
+                <button id="upload-data-btn">Upload Data File</button>
+                <input type="file" id="upload-file-input" style="display:none;" accept=".json">
+            </div>
+            <div id="archive-list">
+                <p>No archived seasons yet.</p>
+            </div>
+        </div>
+    </div>
+    <div id="minutaza-content" class="content">
+        <h2>Minutaža</h2>
+        <div class="minutes-form">
+            <h3>Add Minutes for Current Match</h3>
+            <div class="minutes-controls">
+                <button class="full-match-btn" id="full-match-btn">Full Match (90 min)</button>
+                <input type="number" class="minutes-input" id="minutes-input" placeholder="Minutes" min="1" max="90">
+                <button class="confirm-minutes-btn" id="confirm-minutes-btn">Confirm</button>
+                <button class="reset-minutes-btn" id="undo-minutes-btn">Undo Last Change</button>
+            </div>
+        </div>
+        <table id="minutaza-table">
+            <thead>
+                <tr>
+                    <th>Player</th>
+                    <th>Positions</th>
+                    <th>Age</th>
+                    <th>Quality</th>
+                    <th>Total Minutes</th>
+                    <th>Matches</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+   <div id="goals-assists-content" class="content">
+        <h2>Goals & Assists</h2>
+        <div class="minutes-form">
+            <button class="reset-minutes-btn" id="undo-ga-btn">Undo Last Change</button>
+        </div>
+        <div class="table-container">
+        <table id="goals-assists-table">
+            <thead>
+                <tr>
+                    <th rowspan="2">Player</th>
+                    <th rowspan="2">Positions</th>
+                    <th rowspan="2">Age</th>
+                    <th rowspan="2">Current Quality</th>
+                    <th colspan="2" class="league-header">League</th>
+                    <th colspan="2" class="cl-header">Champ. League</th>
+                    <th colspan="2" class="cup-header">Cup</th>
+                    <th rowspan="2" class="stats-separator">Total G</th>
+                    <th rowspan="2">Total A</th>
+                    <th rowspan="2">G+A</th>
+                    <th rowspan="2" class="per90-separator">G/90min</th>
+                    <th rowspan="2">A/90min</th>
+                    <th rowspan="2">G+A/90min</th>
+                </tr>
+                <tr>
+                    <th class="league-header">G</th><th class="league-header">A</th>
+                    <th class="cl-header">G</th><th class="cl-header">A</th>
+                    <th class="cup-header">G</th><th class="cup-header">A</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        </div>
+    </div>
+    <div id="most-improved-content" class="content">
+        <h2>Most Improved Players</h2>
+        <div class="table-container">
+            <table id="most-improved-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th data-sort="player">Player <span class="sort-indicator">▼</span></th>
+                        <th>Positions</th>
+                        <th data-sort="age">Age <span class="sort-indicator">▼</span></th>
+                        <th data-sort="initialQuality">Initial Quality <span class="sort-indicator">▼</span></th>
+                        <th data-sort="currentQuality">Current Quality <span class="sort-indicator">▼</span></th>
+                        <th data-sort="minutes">Minutes <span class="sort-indicator">▼</span></th>
+                        <th data-sort="matches">Matches <span class="sort-indicator">▼</span></th>
+                        <th data-sort="g">G <span class="sort-indicator">▼</span></th>
+                        <th data-sort="a">A <span class="sort-indicator">▼</span></th>
+                        <th data-sort="improvement" data-order="desc">Improvement <span class="sort-indicator desc">▼</span></th>
+                        <th data-sort="improvementPercent">Improvement % <span class="sort-indicator">▼</span></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="chart-container">
+            <h3>Talent Identification: Age vs. Improvement (Size = Minutes)</h3>
+            <canvas id="talent-chart"></canvas>
+        </div>
+        <div class="training-calculator">
+            <h3>Training Bonus Calculator</h3>
+            <table id="training-table">
+                <tbody></tbody>
+            </table>
+            <div class="training-actions">
+                <div class="training-summary">
+                    <p>Umor igrača mora biti između: <span id="training-range"></span></p>
+                </div>
+                <button class="reset-training-btn" id="reset-training-btn">Reset</button>
+            </div>
+        </div>
+    </div>
+    </div>
+    <div id="power-ranking-content" class="content">
+        <h2>Player Power Ranking</h2>
+        <div class="table-container">
+            <table id="power-ranking-table">
+                <thead>
+                    <tr>
+                        <th data-sort="rank">Rank</th>
+                        <th data-sort="player">Player</th>
+                        <th data-sort="change">+/-</th>
+                        <th data-sort="powerScore" data-order="desc">Power Score ▼</th>
+                        <th data-sort="currentQuality">Quality</th>
+                        <th data-sort="improvementScore">Improvement</th>
+                        <th data-sort="adjustedGaPer90">G+A Score</th>
+                        <th data-sort="usageScore">Usage</th>
+                        <th data-sort="ageValue">Age Bonus</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="formula-explanation">
+            <h3>How the Power Score is Calculated</h3>
+            <div class="formula">
+PowerScore = (0.15 × CurrentQuality) + (0.25 × ImprovementScore) + (0.30 × AdjustedG+AScore) + (0.20 × UsageScore) + (0.10 × AgeValue)
+            </div>
+            <h4>1. Current Quality (15%)</h4>
+            <p>The player's raw quality percentage serves as the base for the score.</p>
+            <h4>2. Improvement Score (25%)</h4>
+            <div class="formula">ImprovementScore = (CurrentQuality × 0.6) + (Improvement × 0.4)</div>
+            <p>This rewards both high current ability and significant progress over the season.</p>
+            <h4>3. Adjusted G+A Score (30%)</h4>
+            <p>Calculates a player's goal and assist contribution per 90 minutes, weighted by their position to reflect the difficulty and importance of contributions from different areas of the pitch.</p>
+            <ul>
+                <li><strong>Forwards (ST, AMs):</strong> <code>Goal = 1.0 pts</code>, <code>Assist = 0.7 pts</code></li>
+                <li><strong>Midfielders (MCs, ML/R, DMC):</strong> <code>Goal = 1.3 pts</code>, <code>Assist = 1.0 pts</code></li>
+                <li><strong>Defenders (DCs, DL/R, GK):</strong> <code>Goal = 1.6 pts</code>, <code>Assist = 1.2 pts</code></li>
+            </ul>
+            <h4>5. Usage Score (20%)</h4>
+            <div class="formula">UsageScore = (Total Goals + Total Assists) per 90 minutes</div>
+            <p>A straightforward measure of a player's direct involvement in goals, based on their time on the pitch.</p>
+            <h4>5. Age Value (10%)</h4>
+            <p>A bonus awarded to younger players, representing their higher potential for future growth and value.</p>
+            <ul>
+                <li><strong>18–21 years:</strong> <code>+15 points</code></li>
+                <li><strong>22–25 years:</strong> <code>+10 points</code></li>
+                <li><strong>26–28 years:</strong> <code>+5 points</code></li>
+                <li><strong>29+ years:</strong> <code>+0 points</code></li>
+            </ul>
+        </div>
+    </div>
+    
+    <div id="archived-players-content" class="content">
+        <h2>Archived Players</h2>
+        <div class="table-container">
+            <table id="archived-players-table">
+                <thead>
+                    <tr>
+                        <th data-sort="name">Player <span class="sort-indicator">▼</span></th>
+                        <th>Positions</th>
+                        <th data-sort="age">Age <span class="sort-indicator">▼</span></th>
+                        <th data-sort="minutes">Minutes <span class="sort-indicator">▼</span></th>
+                        <th data-sort="matches">Matches <span class="sort-indicator">▼</span></th>
+                        <th data-sort="goals">Goals <span class="sort-indicator">▼</span></th>
+                        <th data-sort="assists">Assists <span class="sort-indicator">▼</span></th>
+                        <th>Delete</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+    <!-- Player modal -->
+    <div class="modal" id="player-modal">
+        <div class="modal-content">
+            <h2 id="modal-title">Add New Player</h2>
+            <div class="form-group">
+                <label for="player-name">Player Name:</label>
+                <input type="text" id="player-name" required>
+            </div>
+            <div class="form-group">
+                <label for="player-position">Position(s): <small>(Ctrl/Cmd + click for multiple, max 3)</small></label>
+                <select id="player-position" multiple size="13" required>
+                    <!--GK-->
+                    <option value="GK">GK (Goalkeeper)</option>
+                    <optgroup label="Defense">
+                        <option value="DL">DL (Left Defender)</option>
+                        <option value="DC">DC (Center Defender)</option>
+                        <option value="DR">DR (Right Defender)</option>
+                    </optgroup>
+                    <optgroup label="Midfield">
+                        <option value="DMC">DMC (Defensive Midfielder)</option>
+                        <option value="ML">ML (Left Midfielder)</option>
+                        <option value="MC">MC (Center Midfielder)</option>
+                        <option value="MR">MR (Right Midfielder)</option>
+                        <option value="AML">AML (Attacking Midfielder Left)</option>
+                        <option value="AMC">AMC (Attacking Midfielder Center)</option>
+                        <option value="AMR">AMR (Attacking Midfielder Right)</option>
+                    </optgroup>
+                    <optgroup label="Attack">
+                        <option value="ST">ST (Striker)</option>
+                    </optgroup>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="player-age">Age:</label>
+                <input type="number" id="player-age" min="16" max="45" required>
+            </div>
+            <div class="form-group">
+                <label for="player-quality">Quality (%):</label>
+                <input type="number" id="player-quality" min="1" max="100" required>
+            </div>
+            <div class="modal-buttons">
+                <button class="cancel-btn" id="cancel-btn">Cancel</button>
+                <button class="save-btn" id="save-btn">Save</button>
+            </div>
+        </div>
+    </div>
+    <!-- Confirm delete modal (kept for code simplicity, but no longer used for napredak tab) -->
+    <div class="confirm-modal" id="confirm-modal">
+        <div class="confirm-content">
+            <h3>Delete Player</h3>
+            <p>Are you sure you want to delete this player?</p>
+            <p id="player-to-delete"></p>
+            <div class="confirm-buttons">
+                <button class="cancel-btn" id="confirm-cancel">Cancel</button>
+                <button class="save-btn" id="confirm-delete">Delete</button>
+            </div>
+        </div>
+    </div>
+<script>
+    document.addEventListener('DOMContentLoaded',function(){
+        /* Tabs */
+        const tabs=document.querySelectorAll('.tab');
+        tabs.forEach(tab=>{tab.addEventListener('click',function(){
+            tabs.forEach(t=>t.classList.remove('active'));
+            this.classList.add('active');
+            const tabName=this.dataset.tab;
+            document.querySelectorAll('.content').forEach(c=>c.classList.remove('active'));
+            document.getElementById(`${tabName}-content`).classList.add('active');
+            if(tabName==='minutaza')updateMinutesTable();
+            else if(tabName==='goals-assists')updateGoalsAssistsTable();
+            else if(tabName==='most-improved')updateMostImprovedTable();
+            else if(tabName==='power-ranking')updatePowerRankingTable();
+            else if(tabName==='archived-players')renderArchivedPlayers();
+        });});
+        /* Elements */
+        const addPlayerBtn=document.getElementById('add-player-btn');
+        const playerModal=document.getElementById('player-modal');
+        const cancelBtn=document.getElementById('cancel-btn');
+        const saveBtn=document.getElementById('save-btn');
+        const confirmModal=document.getElementById('confirm-modal');
+        const confirmCancelBtn=document.getElementById('confirm-cancel');
+        const confirmDeleteBtn=document.getElementById('confirm-delete');
+        const ageAllBtn=document.getElementById('age-all-btn');
+        const fullMatchBtn=document.getElementById('full-match-btn');
+        const minutesInput=document.getElementById('minutes-input');
+        const confirmMinutesBtn=document.getElementById('confirm-minutes-btn');
+        const undoMinutesBtn=document.getElementById('undo-minutes-btn');
+        const undoGaBtn=document.getElementById('undo-ga-btn');
+        const avgQualitySpan=document.getElementById('avg-quality');
+        const resetTrainingBtn = document.getElementById('reset-training-btn');
+        const endSeasonBtn = document.getElementById('end-season-btn');
+        const downloadDataBtn = document.getElementById('download-data-btn');
+        const uploadDataBtn = document.getElementById('upload-data-btn');
+        const uploadFileInput = document.getElementById('upload-file-input');
+        let currentPlayerId=null;let selectedPlayersForMinutes=[];let players=[];
+        let minutesHistory=[];
+        let gaHistory=[];
+        let talentChart = null;
+        let archivedPlayers = [];
+        let previousPowerRanking = [];
+        /* ARCHIVED PLAYERS STORAGE */
+        function loadArchivedPlayersFromStorage() {
+            archivedPlayers = JSON.parse(localStorage.getItem('archivedPlayers') || '[]');
+        }
+        function saveArchivedPlayersToStorage() {
+            localStorage.setItem('archivedPlayers', JSON.stringify(archivedPlayers));
+        }
+        /* Utils */
+        function getPositionCategory(pos){if(pos==='GK')return'gk';if(['DL','DC','DR'].includes(pos))return'def';if(['DMC','ML','MC','MR','AMC','AML','AMR'].includes(pos))return'mid';if(['ST'].includes(pos))return'att';return'';}
+        function getPositionOrder(pos){const order={GK:0,DL:1,DC:2,DR:3,DMC:4,ML:5,MC:6,MR:7,AML:8,AMC:9,AMR:10,ST:11};return order[pos]||99;}
+        function sortPlayers(){const positionOrderCat={gk:0,def:1,mid:2,att:3};players.sort((a,b)=>{const catA=getPositionCategory(a.positions[0]);const catB=getPositionCategory(b.positions[0]);if(catA!==catB)return positionOrderCat[catA]-positionOrderCat[catB];return getPositionOrder(a.positions[0])-getPositionOrder(b.positions[0]);});}
+        function clearModal(){document.getElementById('player-name').value='';Array.from(document.getElementById('player-position').options).forEach(o=>o.selected=false);document.getElementById('player-age').value='';document.getElementById('player-quality').value='';document.getElementById('modal-title').textContent='Add New Player';currentPlayerId=null;}function calculateAverageQuality(){if(players.length===0){avgQualitySpan.textContent='--';document.getElementById('squad-count').textContent='0';document.getElementById('avg-age').textContent='--';return;}
+            const avgQuality=(players.reduce((sum,p)=>sum+p.quality,0)/players.length).toFixed(1);
+            const avgAge=(players.reduce((sum,p)=>sum+p.age,0)/players.length).toFixed(1);
+            avgQualitySpan.textContent=avgQuality;
+            document.getElementById('squad-count').textContent=players.length;
+            document.getElementById('avg-age').textContent=avgAge;
+        }
+        function calculateDayAverages(){const averages=Array(28).fill(0);const counts=Array(28).fill(0);players.forEach(player=>{player.progress.forEach((value,day)=>{if(value!==null){averages[day]+=value;counts[day]++;}});});return averages.map((sum,day)=>{return counts[day]>0?(sum/counts[day]).toFixed(2)+'':'-';});}
+        function ensureGaFields(p){['leagueGoals','leagueAssists','clGoals','clAssists','cupGoals','cupAssists'].forEach(f=>{if(typeof p[f]!=='number')p[f]=0;});if(p.comment===undefined)p.comment='';if(!p.tags){p.tags={keep:false,sell:false,slowTrainer:false,hotProspect:false};}}
+        /* Storage */
+        function loadPlayersFromLocalStorage(){const saved=localStorage.getItem('topElevenPlayers');if(saved){players=JSON.parse(saved);players.forEach(p=>{if(!p.positions){p.positions=[p.position||''];}if(!p.position)p.position=p.positions[0];if(!p.progress)p.progress=Array(28).fill(null);if(!p.minutes)p.minutes=Array(28).fill(0);if(!p.initialQuality)p.initialQuality=p.quality;ensureGaFields(p);});}}
+        function savePlayersToLocalStorage(){localStorage.setItem('topElevenPlayers',JSON.stringify(players));}
+        
+        function endSeason() {
+            if (!confirm("Are you sure you want to end the current season? This will archive all current player data and reset their stats for a new season. This action cannot be undone.")) {
+                return;
+            }
+            // 1. Get existing archives or create new array
+            const archives = JSON.parse(localStorage.getItem('topElevenArchives') || '[]');
+            
+            // 2. Create new archive object
+            const seasonData = {
+                seasonNumber: archives.length + 1,
+                endDate: new Date().toLocaleDateString(),
+                players: JSON.parse(JSON.stringify(players)) // Deep copy of players array
+            };
+            // 3. Add new archive and save
+            archives.push(seasonData);
+            localStorage.setItem('topElevenArchives', JSON.stringify(archives));
+            
+            // 4. Reset players for the new season
+            players.forEach(p => {
+                p.initialQuality = p.quality; // New initial quality is the last season's final quality
+                p.progress = Array(28).fill(null);
+                p.minutes = Array(28).fill(0);
+                p.totalMinutes = 0;
+                p.matchesPlayed = 0;
+                p.leagueGoals = 0;
+                p.leagueAssists = 0;
+                p.clGoals = 0;
+                p.clAssists = 0;
+                p.cupGoals = 0;
+                p.cupAssists = 0;
+            });
+            
+            // 5. Save the reset player data
+            savePlayersToLocalStorage();
+            // 6. Re-render everything
+            alert(`Season ${seasonData.seasonNumber} has been archived. The new season is ready to begin!`);
+            renderPlayers();
+            loadAndRenderArchives();
+        }
+        /* CRUD */
+        function addPlayer(name,positionsArr,age,quality){const primary=positionsArr[0];const player={id:Date.now(),name,position:primary,positions:positionsArr,age,quality,initialQuality:quality,progress:Array(28).fill(null),minutes:Array(28).fill(0),leagueGoals:0,leagueAssists:0,clGoals:0,clAssists:0,cupGoals:0,cupAssists:0,totalMinutes:0,matchesPlayed:0,comment:'',tags:{keep:false,sell:false,slowTrainer:false,hotProspect:false}};players.push(player);return player;}
+        function editPlayer(playerId){const player=players.find(p=>p.id===playerId);if(!player)return;currentPlayerId=playerId;document.getElementById('modal-title').textContent='Edit Player';document.getElementById('player-name').value=player.name;document.getElementById('player-age').value=player.age;document.getElementById('player-quality').value=player.quality;Array.from(document.getElementById('player-position').options).forEach(o=>{o.selected=player.positions.includes(o.value);});playerModal.style.display='flex';}
+        function confirmDeletePlayer(playerId){const player=players.find(p=>p.id===playerId);if(!player)return;document.getElementById('player-to-delete').textContent=`${player.name} (${player.positions.join('/')})`;confirmModal.style.display='flex';confirmDeleteBtn.onclick=function(){players=players.filter(p=>p.id!==playerId);savePlayersToLocalStorage();renderPlayers();confirmModal.style.display='none';};}
+        function ageAllPlayers(){players.forEach(p=>{if(p.age<45)p.age++;});savePlayersToLocalStorage();renderPlayers();}
+        function addMinutesToSelected(minutes){
+            const currentMatchDay=players[0]?.minutes.findIndex(m=>m===0);
+            // Save state for undo
+            const undoState={
+                type:'addMinutes',
+                players:selectedPlayersForMinutes.map(id=>{
+                    const p=players.find(pl=>pl.id===id);
+                    return {
+                        id:id,
+                        previousMinutes:p.minutes[currentMatchDay],
+                        previousTotal:p.totalMinutes,
+                        previousMatches:p.matchesPlayed,
+                        matchDay:currentMatchDay,
+                        addedMinutes:minutes
+                    };
+                })
+            };
+            minutesHistory.push(undoState);
+            
+            players.forEach(p=>{if(selectedPlayersForMinutes.includes(p.id)){
+                // Add minutes to current match day (don't overwrite)
+                p.minutes[currentMatchDay]=(p.minutes[currentMatchDay]||0)+minutes;
+                // Add to total minutes
+                p.totalMinutes=(p.totalMinutes||0)+minutes;
+                // Increment matches every time minutes are added
+                if(minutes>0)p.matchesPlayed=(p.matchesPlayed||0)+1;
+            }});
+            selectedPlayersForMinutes=[];
+            savePlayersToLocalStorage();
+            updateMinutesTable();
+        }
+        
+        function undoLastMinutesChange(){
+            if(minutesHistory.length===0){
+                alert('No changes to undo');
+                return;
+            }
+            
+            const lastChange=minutesHistory.pop();
+            if(lastChange.type==='addMinutes'){
+                lastChange.players.forEach(playerData=>{
+                    const p=players.find(pl=>pl.id===playerData.id);
+                    if(p){
+                        p.minutes[playerData.matchDay]=playerData.previousMinutes;
+                        p.totalMinutes=playerData.previousTotal;
+                        p.matchesPlayed=playerData.previousMatches;
+                    }
+                });
+            }
+            
+            savePlayersToLocalStorage();
+            updateMinutesTable();
+        }// ARCHIVE PLAYER FUNCTION
+        function archivePlayer(playerId) {
+            const idx = players.findIndex(p => p.id === playerId);
+            if (idx === -1) return;
+            const playerToArchive = players[idx];
+            if (!confirm(`Are you sure you want to archive ${playerToArchive.name}?`)) return;
+            // Remove from active players, push to archivedPlayers
+            players.splice(idx, 1);
+            archivedPlayers.push(playerToArchive);
+            savePlayersToLocalStorage();
+            saveArchivedPlayersToStorage();
+            renderPlayers();
+            renderArchivedPlayers();
+        }
+
+        // RENDER ARCHIVED PLAYERS
+        // --- Archived Players Table Sorting State ---
+        let archivedSortBy = 'name';
+        let archivedSortOrder = 'asc';
+        function renderArchivedPlayers() {
+            loadArchivedPlayersFromStorage();
+    const tbody = document.querySelector('#archived-players-table tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+            if (!archivedPlayers.length) {
+                tbody.innerHTML = '<tr><td colspan="8">No players have been archived yet.</td></tr>';
+                return;
+            }
+            // Prepare data for sorting
+            const data = archivedPlayers.map((p, idx) => {
+                let currentQuality = p.initialQuality;
+                if (p.progress) {
+                    for (let i = p.progress.length - 1; i >= 0; i--) {
+                        if (p.progress[i] !== null && p.progress[i] !== undefined) {
+                            currentQuality = p.progress[i];
+                            break;
+                        }
+                    }
+                }
+                const totalGoals = (p.leagueGoals||0)+(p.clGoals||0)+(p.cupGoals||0);
+                const totalAssists = (p.leagueAssists||0)+(p.clAssists||0)+(p.cupAssists||0);
+                const improvement = (currentQuality - p.initialQuality) || 0;
+                const improvementPercent = p.initialQuality > 0 ? ((improvement / p.initialQuality) * 100) : 0;
+                return {
+                    idx,
+                    name: p.name,
+                    positions: p.positions,
+                    age: p.age,
+                    initialQuality: p.initialQuality,
+                    currentQuality,
+                    improvement,
+                    improvementPercent,
+                    minutes: p.totalMinutes || 0,
+                    matches: p.matchesPlayed || 0,
+                    goals: totalGoals,
+                    assists: totalAssists,
+                    player: p
+                };
+            });
+            // Sort
+            data.sort((a, b) => {
+                let valA = a[archivedSortBy], valB = b[archivedSortBy];
+                if (typeof valA === 'string') {
+                    return archivedSortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                } else {
+                    return archivedSortOrder === 'asc' ? valA - valB : valB - valA;
+                }
+            });
+            // Render rows
+            data.forEach(item => {
+                const p = item.player;
+                const row = document.createElement('tr');
+                // Name (bold surname)
+                const nameParts = p.name.split(' ');
+                let nameHtml = p.name.includes(' ') ? `${p.name.substring(0, p.name.lastIndexOf(' '))} <span class="player-name-bold">${p.name.substring(p.name.lastIndexOf(' ') + 1)}</span>` : `<span class="player-name-bold">${p.name}</span>`;
+                row.innerHTML = `
+                    <td>${nameHtml}</td>
+                    <td>${p.positions.join('/')}</td>
+                    <td><input type="number" class="editable-stat" value="${p.age}" data-idx="${item.idx}" data-field="age"></td>
+                    <td><input type="number" class="editable-stat" value="${item.minutes}" data-idx="${item.idx}" data-field="totalMinutes"></td>
+                    <td><input type="number" class="editable-stat" value="${item.matches}" data-idx="${item.idx}" data-field="matchesPlayed"></td>
+                    <td><input type="number" class="editable-stat" value="${item.goals}" data-idx="${item.idx}" data-field="goals"></td>
+                    <td><input type="number" class="editable-stat" value="${item.assists}" data-idx="${item.idx}" data-field="assists"></td>
+                    <td><button class='delete-btn' data-idx='${item.idx}'>Delete</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+            // Update sort indicators
+            const table = document.getElementById('archived-players-table');
+            if (table) {
+                table.querySelectorAll('th[data-sort]').forEach(th => {
+                    th.dataset.order = '';
+                    const ind = th.querySelector('.sort-indicator');
+                    if (ind) ind.className = 'sort-indicator';
+                    if (th.dataset.sort === archivedSortBy) {
+                        th.dataset.order = archivedSortOrder;
+                        if (ind) ind.classList.add(archivedSortOrder);
+                    }
+                });
+            }
+            // Delete event
+            tbody.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const idx = parseInt(this.dataset.idx);
+                    if (confirm(`Are you sure you want to delete archived player ${archivedPlayers[idx].name}?`)) {
+                        archivedPlayers.splice(idx, 1);
+                        saveArchivedPlayersToStorage();
+                        renderArchivedPlayers();
+                    }
+                });
+            });
+            // Editable stats event
+            tbody.querySelectorAll('.editable-stat').forEach(input => {
+                input.addEventListener('change', function(e) {
+                    e.stopPropagation();
+                    const idx = parseInt(this.dataset.idx);
+                    const field = this.dataset.field;
+                    const value = parseInt(this.value);
+                    if (isNaN(value)) return;
+                    const player = archivedPlayers[idx];
+                    if (field === 'goals' || field === 'assists') {
+                        // This is a simplified update. If individual competition stats are needed, this would need to be more complex.
+                        // For now, we assume this sets a general 'league' goal/assist count.
+                        // To keep things simple, we'll assign the total value to the 'league' stat
+                        // and ensure other competition stats are preserved if they exist.
+                        if (field === 'goals') {
+                            player.leagueGoals = value;
+                            player.clGoals = player.clGoals || 0;
+                            player.cupGoals = player.cupGoals || 0;
+                        } else { // assists
+                            player.leagueAssists = value;
+                            player.clAssists = player.clAssists || 0;
+                            player.cupAssists = player.cupAssists || 0;
+                        }
+                    } else {
+                        player[field] = value;
+                    }
+                    
+                    saveArchivedPlayersToStorage();
+                    renderArchivedPlayers();
+                });
+            });
+        }
+
+        /* Render active players (napredak) */
+        function renderPlayers(){
+            sortPlayers();const list=document.getElementById('player-list');list.innerHTML='';const dayAverages=calculateDayAverages();const header=document.createElement('div');header.className='player-card';header.style.pointerEvents='none';header.style.backgroundColor='transparent';header.style.boxShadow='none';const dummyInfo=document.createElement('div');dummyInfo.className='player-info';dummyInfo.style.visibility='hidden';header.appendChild(dummyInfo);const weeksContainer=document.createElement('div');weeksContainer.className='weeks-container';
+            for(let week=1;week<=4;week++){const weekHeader=document.createElement('div');weekHeader.className='week-header';const weekLabel=document.createElement('div');weekLabel.className='week-label';weekLabel.textContent=`Week ${week}:`;weekHeader.appendChild(weekLabel);const daysCells=document.createElement('div');daysCells.className='days-header';const startDay=(week-1)*7+1;const endDay=Math.min(week*7,28);for(let i=startDay;i<=endDay;i++){const cell=document.createElement('div');cell.className='day-cell';cell.textContent=i;daysCells.appendChild(cell);}weekHeader.appendChild(daysCells);weeksContainer.appendChild(weekHeader);}header.appendChild(weeksContainer);
+            const averagesRow=document.createElement('div');averagesRow.className='player-card';averagesRow.style.pointerEvents='none';averagesRow.style.backgroundColor='transparent';averagesRow.style.boxShadow='none';const avgLabel=document.createElement('div');avgLabel.className='player-info';avgLabel.textContent='Avg:';avgLabel.style.fontWeight='bold';avgLabel.style.fontSize='11px';averagesRow.appendChild(avgLabel);const avgWeeksContainer=document.createElement('div');avgWeeksContainer.className='weeks-container';
+            for(let week=1;week<=4;week++){const avgWeekHeader=document.createElement('div');avgWeekHeader.className='week-header';const avgWeekLabel=document.createElement('div');avgWeekLabel.className='week-label';avgWeekLabel.style.visibility='hidden';avgWeekLabel.textContent=`Week ${week}:`;avgWeekHeader.appendChild(avgWeekLabel);const avgValues=document.createElement('div');avgValues.className='player-days';const startDay=(week-1)*7;const endDay=Math.min(week*7-1,27);for(let i=startDay;i<=endDay;i++){const avgCell=document.createElement('div');avgCell.className='day-average';avgCell.textContent=dayAverages[i];avgValues.appendChild(avgCell);}avgWeekHeader.appendChild(avgValues);avgWeeksContainer.appendChild(avgWeekHeader);}averagesRow.appendChild(avgWeeksContainer);
+            list.appendChild(header);list.appendChild(averagesRow);
+            players.forEach(p=>{
+                const card=document.createElement('div');
+                card.className='player-card';
+                card.dataset.playerId=p.id;
+                const info=document.createElement('div');
+                info.className='player-info';
+                p.positions.forEach(pos=>{
+                    const lab=document.createElement('span');
+                    lab.className=`position-label ${getPositionCategory(pos)}`;
+                    lab.textContent=pos;
+                    info.appendChild(lab);
+                });
+                // Create name with bold surname
+                const nameSpan=document.createElement('span');
+                const nameParts=p.name.split(' ');
+                if(nameParts.length>1){
+                    const firstName=nameParts.slice(0,-1).join(' ');
+                    const surname=nameParts[nameParts.length-1];
+                    nameSpan.innerHTML=`${firstName} <span class="player-name-bold">${surname}</span> (${p.age}, ${p.quality}%)`;
+                }else{
+                    nameSpan.innerHTML=`<span class="player-name-bold">${p.name}</span> (${p.age}, ${p.quality}%)`;
+                }
+                info.appendChild(nameSpan);
+                // Star
+                const starDiv=document.createElement('div');
+                starDiv.className='star-rating';
+                const starsBase='★★★★★';
+                starDiv.innerHTML=`<span class='stars-outer'>${starsBase}</span><span class='stars-inner' style='width:${Math.min(p.quality,100)}%'>${starsBase}</span>`;
+                info.appendChild(starDiv);
+                // Favorite star
+                // Tags
+                const tagsContainer=document.createElement('div');
+                tagsContainer.className='card-tags-container';
+                tagsContainer.addEventListener('click', e => e.stopPropagation());
+                const tags = {
+                    keep: { short: 'K', title: 'Keep', color: '#28a745' },
+                    sell: { short: 'S', title: 'Sell', color: '#dc3545' },
+                    slowTrainer: { short: 'SL', title: 'Slow Trainer', color: '#ffc107' },
+                    hotProspect: { short: 'H', title: 'Hot Prospect', color: '#17a2b8' }
+                };
+                for (const key in tags) {
+                    const tagEl = document.createElement('div');
+                    tagEl.className = `card-tag ${p.tags[key] ? 'active' : ''}`;
+                    tagEl.textContent = tags[key].short;
+                    tagEl.title = tags[key].title;
+                    if (p.tags[key]) {
+                        tagEl.style.backgroundColor = tags[key].color;
+                        tagEl.style.borderColor = tags[key].color;
+                    }
+                    tagEl.addEventListener('click', () => {
+                        p.tags[key] = !p.tags[key];
+                        savePlayersToLocalStorage();
+                        renderPlayers();
+                        if(document.getElementById('notes-content').classList.contains('active')) {
+                           renderNotesTab();
+                        }
+                    });
+                    tagsContainer.appendChild(tagEl);
+                }
+                info.appendChild(tagsContainer);
+                // Edit button
+                const editBtn=document.createElement('button');
+                editBtn.className='edit-btn';
+                editBtn.textContent='Edit';
+                editBtn.addEventListener('click',(e)=>{
+                    e.stopPropagation();
+                    editPlayer(p.id);
+                });
+                info.appendChild(editBtn);
+                // Archive button (NEW)
+                const archiveBtn=document.createElement('button');
+                archiveBtn.className='archive-btn';
+                archiveBtn.textContent='Archive';
+                archiveBtn.addEventListener('click',(e)=>{
+                    e.stopPropagation();
+                    archivePlayer(p.id);
+                });
+                info.appendChild(archiveBtn);
+                // (Removed Delete Button)
+                
+                card.appendChild(info);
+                // Weeks container for progress input
+                const playerWeeksContainer=document.createElement('div');
+                playerWeeksContainer.className='weeks-container';
+                for(let week=1;week<=4;week++){
+                    const playerWeekHeader=document.createElement('div');
+                    playerWeekHeader.className='week-header';
+                    const playerWeekLabel=document.createElement('div');
+                    playerWeekLabel.className='week-label';
+                    playerWeekLabel.style.visibility='hidden';
+                    playerWeekLabel.textContent=`Week ${week}:`;
+                    playerWeekHeader.appendChild(playerWeekLabel);
+                    const daysDiv=document.createElement('div');
+                    daysDiv.className='player-days';
+                    const startDay=(week-1)*7;
+                    const endDay=Math.min(week*7-1,27);
+                    for(let i=startDay;i<=endDay;i++){
+                        const inp=document.createElement('input');
+                        inp.className='player-day-input';
+                        inp.type='number';
+                        inp.min='0';
+                        inp.max='100';
+                        inp.value=p.progress[i]||'';
+                        inp.dataset.day=i;
+                        inp.addEventListener('change',function(e){
+                            e.stopPropagation();
+                            const d=parseInt(this.dataset.day);
+                            const v=this.value?parseInt(this.value):null;
+                            p.progress[d]=v;
+                            savePlayersToLocalStorage();
+                            renderPlayers();
+                        });
+                        inp.addEventListener('click',function(e){
+                            e.stopPropagation();
+                        });
+                        daysDiv.appendChild(inp);
+                    }
+                    playerWeekHeader.appendChild(daysDiv);
+                    playerWeeksContainer.appendChild(playerWeekHeader);
+                }
+                card.appendChild(playerWeeksContainer);
+                card.addEventListener('click',function(e){
+                    if(e.target.tagName==='INPUT'||e.target.tagName==='BUTTON')return;
+                });
+                list.appendChild(card);
+            });
+            calculateAverageQuality();
+        }
+        
+        function loadAndRenderArchives() {
+            const archiveListDiv = document.getElementById('archive-list');
+            const archives = JSON.parse(localStorage.getItem('topElevenArchives') || '[]');
+            
+            if (archives.length === 0) {
+                archiveListDiv.innerHTML = '<p>No archived seasons yet.</p>';
+                return;
+            }
+            
+            archiveListDiv.innerHTML = ''; // Clear existing
+            // Later, we can add more detailed views here
+            archives.reverse().forEach(archive => { // Show newest first
+                const archiveEntry = document.createElement('div');
+                archiveEntry.innerHTML = `<strong>Season ${archive.seasonNumber}</strong> (Ended on: ${archive.endDate}) - ${archive.players.length} players`;
+                archiveListDiv.appendChild(archiveEntry);
+            });
+        }
+        
+        function downloadData() {
+            const dataToSave = {
+                players: JSON.parse(localStorage.getItem('topElevenPlayers') || '[]'),
+                archives: JSON.parse(localStorage.getItem('topElevenArchives') || '[]'),
+                trainingBonuses: JSON.parse(localStorage.getItem('trainingBonuses') || '{}')
+            };
+            
+            const dataStr = JSON.stringify(dataToSave, null, 2);
+            const blob = new Blob([dataStr], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `top_eleven_tracker_backup_${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        function uploadData(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+            if (!confirm("Are you sure you want to upload this file? This will overwrite all current data in the tracker.")) {
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    if (data.players && data.archives && data.trainingBonuses) {
+                        localStorage.setItem('topElevenPlayers', JSON.stringify(data.players));
+                        localStorage.setItem('topElevenArchives', JSON.stringify(data.archives));
+                        localStorage.setItem('trainingBonuses', JSON.stringify(data.trainingBonuses));
+                        // Reload and re-render all data
+                        loadPlayersFromLocalStorage();
+                        renderPlayers();
+                        updateMinutesTable();
+                        updateGoalsAssistsTable();
+                        updateMostImprovedTable();
+                        loadAndRenderArchives();
+                        loadTrainingBonuses();
+                        
+                        alert('Data successfully uploaded and restored!');
+                    } else {
+                        alert('Error: The uploaded file has an invalid format.');
+                    }
+                } catch (error) {
+                    alert('Error reading or parsing the file. Please ensure it is a valid JSON backup file.');
+                    console.error("Upload error:", error);
+                }
+            };
+            reader.readAsText(file);
+            
+            // Reset the input so the same file can be uploaded again if needed
+            event.target.value = '';
+        }
+        
+        function updateMinutesTable(){const tbody=document.querySelector('#minutaza-table tbody');tbody.innerHTML='';
+            const allMinutes=players.map(p=>(p.totalMinutes||0));
+            const maxMinutes=Math.max(...allMinutes);
+            const minMinutes=Math.min(...allMinutes);
+            
+            function getMinuteColor(minutes){
+                if(maxMinutes===minMinutes||minutes===0) return 'transparent'; // No color if all same or zero
+                const ratio=(minutes-minMinutes)/(maxMinutes-minMinutes);
+                // Hue from blue (240) to red (0)
+                const hue=240-(ratio*240);
+                return `hsl(${hue}, 80%, 85%)`;
+            }
+            players.forEach(p=>{
+                const total=p.totalMinutes||0;
+                const matches=p.matchesPlayed||0;
+                const row=document.createElement('tr');
+                row.dataset.playerId=p.id;
+                
+                // Set selection class if player is selected
+                if(selectedPlayersForMinutes.includes(p.id)){
+                    row.classList.add('selected');
+                }
+                // Apply color coding
+                row.style.backgroundColor=getMinuteColor(total);
+                // Create name with bold surname
+                const nameParts=p.name.split(' ');
+                let displayName;
+                if(nameParts.length>1){
+                    const firstName=nameParts.slice(0,-1).join(' ');
+                    const surname=nameParts[nameParts.length-1];
+                    displayName=`${firstName} <span class="player-name-bold">${surname}</span>`;
+                }else{
+                    displayName=`<span class="player-name-bold">${p.name}</span>`;
+                }
+                
+                row.innerHTML=`<td>${displayName}</td><td class='${getPositionCategory(p.positions[0])}'>${p.positions.join('/')}</td><td>${p.age}</td><td>${p.quality}</td><td>${total}</td><td>${matches}</td>`;
+                
+                // Add reset button cell
+                const actionsCell=document.createElement('td');
+                const resetBtn=document.createElement('button');
+                resetBtn.className='reset-player-minutes-btn';
+                resetBtn.textContent='Reset';
+                resetBtn.dataset.playerId=p.id;
+                actionsCell.appendChild(resetBtn);
+                row.appendChild(actionsCell);
+                
+                row.addEventListener('click',function(e){
+                    if(e.target.classList.contains('reset-player-minutes-btn'))return;
+                    
+                    const id=parseInt(this.dataset.playerId);
+                    this.classList.toggle('selected');
+                    if(this.classList.contains('selected')){
+                        if(!selectedPlayersForMinutes.includes(id))selectedPlayersForMinutes.push(id);
+                    }else{
+                        selectedPlayersForMinutes=selectedPlayersForMinutes.filter(x=>x!==id);
+                    }
+                });
+                tbody.appendChild(row);
+            });
+        }
+function updateGoalsAssistsTable(){
+            const tbody=document.querySelector('#goals-assists-table tbody');
+            tbody.innerHTML='';
+            players.forEach(p => {
+                ensureGaFields(p);
+                // Get current quality
+                let currentQuality = p.initialQuality;
+                for (let i = p.progress.length - 1; i >= 0; i--) {
+                    if (p.progress[i] !== null && p.progress[i] !== undefined) {
+                        currentQuality = p.progress[i];
+                        break;
+                    }
+                }
+                const totalGoals=p.leagueGoals+p.clGoals+p.cupGoals;
+                const totalAssists=p.leagueAssists+p.clAssists+p.cupAssists;
+                const ga=totalGoals+totalAssists;
+                const totalMinutes=p.totalMinutes||0;
+                
+                let goalsPer90 = totalMinutes > 0 ? (totalGoals * 90) / totalMinutes : 0;
+                let assistsPer90 = totalMinutes > 0 ? (totalAssists * 90) / totalMinutes : 0;
+                let gaPer90 = totalMinutes > 0 ? (ga * 90) / totalMinutes : 0;
+                const row=document.createElement('tr');
+                row.dataset.playerId=p.id;
+                
+                const nameParts=p.name.split(' ');
+                let displayName = nameParts.length > 1 ? `${nameParts.slice(0,-1).join(' ')} <span class="player-name-bold">${nameParts[nameParts.length-1]}</span>` : `<span class="player-name-bold">${p.name}</span>`;
+                row.innerHTML=`<td>${displayName}</td><td class='${getPositionCategory(p.positions[0])}'>${p.positions.join('/')}</td><td>${p.age}</td><td>${currentQuality}%</td>`;
+                
+                const comps=['league','cl','cup'];
+                comps.forEach(c => {
+                    // Goals
+                    let tdG=document.createElement('td');
+                    tdG.innerHTML=`<div class="ga-control">
+                        <button class="ga-btn minus" data-field="${c}Goals" data-op="-1">-</button>
+                        <span class="ga-value ${c}-color">${p[`${c}Goals`]}</span>
+                        <button class="ga-btn plus" data-field="${c}Goals" data-op="1">+</button>
+                    </div>`;
+                    row.appendChild(tdG);
+                    // Assists
+                    let tdA=document.createElement('td');
+                    tdA.innerHTML=`<div class="ga-control">
+                        <button class="ga-btn minus" data-field="${c}Assists" data-op="-1">-</button>
+                        <span class="ga-value ${c}-color">${p[`${c}Assists`]}</span>
+                        <button class="ga-btn plus" data-field="${c}Assists" data-op="1">+</button>
+                    </div>`;
+                    row.appendChild(tdA);
+                });
+                
+                row.innerHTML+=`<td class="stats-separator">${totalGoals}</td><td>${totalAssists}</td><td>${ga}</td><td class="per90-separator">${goalsPer90.toFixed(2)}</td><td>${assistsPer90.toFixed(2)}</td><td>${gaPer90.toFixed(2)}</td>`;
+                tbody.appendChild(row);
+            });
+        }
+        /* Delegated event for GA inputs */
+        document.getElementById('goals-assists-table').addEventListener('click', function(e) {
+            if (e.target.classList.contains('ga-btn')) {
+                const row = e.target.closest('tr');
+                const pid = parseInt(row.dataset.playerId);
+                const field = e.target.dataset.field;
+                const operation = parseInt(e.target.dataset.op);
+                const p = players.find(pl => pl.id === pid);
+                if (p) {
+                    const previousValue = p[field];
+                    const newValue = Math.max(0, (p[field] || 0) + operation); // Ensure value doesn't go below 0
+                    if (previousValue === newValue) return; // Nothing changed
+                    // Save state for undo
+                    const undoState = {
+                        type: 'changeGA',
+                        playerId: pid,
+                        field: field,
+                        previousValue: previousValue,
+                        newValue: newValue
+                    };
+                    gaHistory.push(undoState);
+                    p[field] = newValue;
+                    savePlayersToLocalStorage();
+                    updateGoalsAssistsTable();
+                }
+            }
+        });
+        
+        function undoLastGaChange(){
+            if(gaHistory.length===0){
+                alert('No changes to undo');
+                return;
+            }
+            
+            const lastChange=gaHistory.pop();
+            if(lastChange.type==='changeGA'){
+                const p=players.find(pl=>pl.id===lastChange.playerId);
+                if(p){
+                    p[lastChange.field]=lastChange.previousValue;
+                }
+            }
+            
+            savePlayersToLocalStorage();
+            updateGoalsAssistsTable();
+        }
+        
+function updateMostImprovedTable(sortBy = 'improvement', sortOrder = 'desc') {
+    const tbody = document.querySelector('#most-improved-table tbody');
+    tbody.innerHTML = '';
+    
+    // Calculate improvement for each player
+    const improvements = players.map(p => {
+        let currentQuality = p.initialQuality;
+        for (let i = p.progress.length - 1; i >= 0; i--) {
+            if (p.progress[i] !== null && p.progress[i] !== undefined) {
+                currentQuality = p.progress[i];
+                break;
+            }
+        }
+        
+        const totalGoals = (p.leagueGoals || 0) + (p.clGoals || 0) + (p.cupGoals || 0);
+        const totalAssists = (p.leagueAssists || 0) + (p.clAssists || 0) + (p.cupAssists || 0);
+        const improvement = currentQuality - p.initialQuality;
+        const improvementPercent = p.initialQuality > 0 ? (improvement / p.initialQuality * 100) : 0;
+        
+        return {
+            player: p,
+            initialQuality: p.initialQuality,
+            currentQuality: currentQuality,
+            improvement: improvement,
+            improvementPercent: improvementPercent,
+            totalGoals: totalGoals,
+            totalAssists: totalAssists
+        };
+    });
+    // Sorting logic
+    improvements.sort((a, b) => {
+        let valA, valB;
+        switch(sortBy) {
+            case 'player': valA = a.player.name; valB = b.player.name; break;
+            case 'age': valA = a.player.age; valB = b.player.age; break;
+            case 'initialQuality': valA = a.initialQuality; valB = b.initialQuality; break;
+            case 'currentQuality': valA = a.currentQuality; valB = b.currentQuality; break;
+            case 'minutes': valA = a.player.totalMinutes || 0; valB = b.player.totalMinutes || 0; break;
+            case 'matches': valA = a.player.matchesPlayed || 0; valB = b.player.matchesPlayed || 0; break;
+            case 'g': valA = a.totalGoals; valB = b.totalGoals; break;
+            case 'a': valA = a.totalAssists; valB = b.totalAssists; break;
+            case 'improvementPercent': valA = a.improvementPercent; valB = b.improvementPercent; break;
+            default: // improvement
+                valA = a.improvement; valB = b.improvement; break;
+        }
+        if (typeof valA === 'string') {
+            return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        } else {
+            return sortOrder === 'asc' ? valA - valB : valB - valA;
+        }
+    });
+    // Render table
+    improvements.forEach((item, index) => {
+        const p = item.player;
+        const row = document.createElement('tr');
+        const rank = index + 1;
+        const improvementClass = item.improvement > 0 ? 'color:green' : item.improvement < 0 ? 'color:red' : '';
+        const improvementSign = item.improvement > 0 ? '+' : '';
+        row.innerHTML = `
+            <td>${rank}</td>
+            <td>${p.name}</td>
+            <td class='${getPositionCategory(p.positions[0])}'>${p.positions.join('/')}</td>
+            <td>${p.age}</td>
+            <td>${item.initialQuality}%</td>
+            <td>${item.currentQuality}%</td>
+            <td>${p.totalMinutes || 0}</td>
+            <td>${p.matchesPlayed || 0}</td>
+            <td>${item.totalGoals}</td>
+            <td>${item.totalAssists}</td>
+            <td style='${improvementClass}'>${improvementSign}${item.improvement}%</td>
+            <td style='${improvementClass}'>${improvementSign}${item.improvementPercent.toFixed(1)}%</td>
+        `;
+        tbody.appendChild(row);
+    });
+    // Render the chart with the calculated data
+    renderTalentChart(improvements);
+}
+        
+        function setupTrainingCalculator() {
+            const trainingTimes = ['23:10', '2:10', '5:10', '8:10', '11:10', '14:10', '17:10', '20:10'];
+            const tbody = document.querySelector('#training-table tbody');
+            tbody.innerHTML = ''; // Clear previous
+            
+            trainingTimes.forEach(time => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${time}</td>
+                    <td><input type="number" class="training-input" data-time="${time}" min="0" placeholder="0"></td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            document.getElementById('most-improved-content').addEventListener('input', function(e){
+                if(e.target.classList.contains('training-input')) {
+                    updateTrainingSummary();
+                }
+            });
+            loadTrainingBonuses();
+        }
+        
+        function updateTrainingSummary() {
+            const inputs = document.querySelectorAll('.training-input');
+            let sum = 0;
+            const trainingValues = {};
+            inputs.forEach(input => {
+                const value = parseInt(input.value) || 0;
+                sum += value;
+                trainingValues[input.dataset.time] = value;
+            });
+            
+            const rangeHigh = 99 - sum;
+            const rangeLow = 94 - sum;
+            document.getElementById('training-range').textContent = `${rangeLow}% - ${rangeHigh}%`;
+            
+            localStorage.setItem('trainingBonuses', JSON.stringify(trainingValues));
+        }
+        
+        function loadTrainingBonuses() {
+            const savedBonuses = localStorage.getItem('trainingBonuses');
+            if (savedBonuses) {
+                const trainingValues = JSON.parse(savedBonuses);
+                const inputs = document.querySelectorAll('.training-input');
+                inputs.forEach(input => {
+                    const time = input.dataset.time;
+                    if (trainingValues[time]) {
+                        input.value = trainingValues[time];
+                    }
+                });
+            }
+            updateTrainingSummary();
+        }
+        
+        function resetTrainingCalculator() {
+            const inputs = document.querySelectorAll('.training-input');
+            inputs.forEach(input => {
+                input.value = '';
+            });
+            updateTrainingSummary();
+        }
+        
+        function renderTalentChart(improvementData) {
+            const ctx = document.getElementById('talent-chart').getContext('2d');
+            
+            if (talentChart) {
+                talentChart.destroy();
+            }
+
+            const chartData = improvementData.map(item => {
+                const p = item.player;
+                // Scale radius based on minutes. Add a base size so players with 0 minutes are still visible.
+                const radius = 5 + ((p.totalMinutes || 0) / 100); 
+                return {
+                    x: p.age,
+                    y: item.improvement,
+                    r: Math.min(radius, 30), // Cap radius to prevent huge bubbles
+                    label: p.name
+                };
+            });
+            
+            talentChart = new Chart(ctx, {
+                type: 'bubble',
+                data: {
+                    datasets: [{
+                        label: 'Players',
+                        data: chartData,
+                        backgroundColor: 'rgba(0, 123, 255, 0.6)',
+                        borderColor: 'rgba(0, 123, 255, 1)',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const dataPoint = context.raw;
+                                    const player = improvementData.find(item => item.player.name === dataPoint.label).player;
+                                    return `${dataPoint.label}: Age ${dataPoint.x}, Improvement ${dataPoint.y}%, Minutes ${player.totalMinutes || 0}`;
+                                }
+                            }
+                        },
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Age'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Quality Improvement (%)'
+                            }
+                        }
+                    }
+                }
+            });
+}
+        function getAdjustedGaScore(p) {
+            const totalGoals = (p.leagueGoals || 0) + (p.clGoals || 0) + (p.cupGoals || 0);
+            const totalAssists = (p.leagueAssists || 0) + (p.clAssists || 0) + (p.cupAssists || 0);
+            let goalWeight = 0, assistWeight = 0;
+            const pos = p.positions[0];
+            if (['ST', 'AML', 'AMR', 'AMC'].includes(pos)) {
+                goalWeight = 1.0; assistWeight = 0.7;
+            } else if (['MC', 'ML', 'MR', 'DMC'].includes(pos)) {
+                goalWeight = 1.3; assistWeight = 1.0;
+            } else if (['DL', 'DR', 'DC', 'GK'].includes(pos)) { // GK included here
+                goalWeight = 1.6; assistWeight = 1.2;
+            }
+            const adjustedGA = (totalGoals * goalWeight) + (totalAssists * assistWeight);
+            return p.totalMinutes > 0 ? (adjustedGA / p.totalMinutes) * 90 : 0;
+        }
+        function getAgeValue(age) {
+            if (age >= 18 && age <= 21) return 15;
+            if (age >= 22 && age <= 25) return 10;
+            if (age >= 26 && age <= 28) return 5;
+            return 0;
+        }
+        
+        function updatePowerRankingTable(sortBy = 'powerScore', sortOrder = 'desc') {
+            const tbody = document.querySelector('#power-ranking-table tbody');
+            tbody.innerHTML = '';
+            
+            const oldRanks = new Map(previousPowerRanking.map((p, i) => [p.player.id, i + 1]));
+            
+            const powerData = players.map(p => {
+                let currentQuality = p.initialQuality;
+                for (let i = p.progress.length - 1; i >= 0; i--) {
+                    if (p.progress[i] !== null && p.progress[i] !== undefined) {
+                        currentQuality = p.progress[i];
+                        break;
+                    }
+                }
+                const improvement = currentQuality - p.initialQuality;
+                const improvementScore = (currentQuality * 0.6) + (improvement * 0.4);
+                
+                const totalGoals = (p.leagueGoals || 0) + (p.clGoals || 0) + (p.cupGoals || 0);
+                const totalAssists = (p.leagueAssists || 0) + (p.clAssists || 0) + (p.cupAssists || 0);
+                const ga = totalGoals + totalAssists;
+                const usageScore = p.totalMinutes > 0 ? (ga * 90) / p.totalMinutes : 0;
+                const adjustedGaPer90 = getAdjustedGaScore(p);
+                const ageValue = getAgeValue(p.age);
+                
+                const powerScore = (0.15 * currentQuality) + 
+                                   (0.25 * improvementScore) + 
+                                   (0.30 * adjustedGaPer90) +
+                                   (0.20 * usageScore) +
+                                   (0.10 * ageValue);
+                
+                return {
+                    player: p,
+                    powerScore: powerScore,
+                    currentQuality,
+                    improvementScore,
+                    adjustedGaPer90,
+                    usageScore,
+                    ageValue
+                };
+            });
+            
+            // Sort
+            powerData.sort((a, b) => {
+                let valA = a[sortBy], valB = b[sortBy];
+                if (sortBy === 'player') { valA = a.player.name; valB = b.player.name; }
+                if (typeof valA === 'string') {
+                    return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                }
+                return sortOrder === 'asc' ? valA - valB : valB - valA;
+            });
+            
+            // Find max values for color coding, ignoring zero values
+            const maxScores = {
+                powerScore: Math.max(0, ...powerData.map(d => d.powerScore)),
+                currentQuality: Math.max(0, ...powerData.map(d => d.currentQuality)),
+                improvementScore: Math.max(0, ...powerData.map(d => d.improvementScore)),
+                adjustedGaPer90: Math.max(0, ...powerData.map(d => d.adjustedGaPer90)),
+                usageScore: Math.max(0, ...powerData.map(d => d.usageScore)),
+                ageValue: Math.max(0, ...powerData.map(d => d.ageValue))
+            };
+            powerData.forEach((data, index) => {
+                const p = data.player;
+                const row = document.createElement('tr');
+                const maxClass = (field, value) => (value > 0 && value === maxScores[field]) ? 'class="top-score"' : '';
+                
+                const newRank = index + 1;
+                const oldRank = oldRanks.get(p.id);
+                let rankChangeHtml = '<span style="color: #999;">–</span>'; // Default for no change or new player
+                if (oldRank && oldRank !== newRank) {
+                    if (newRank < oldRank) {
+                        rankChangeHtml = `<span style="color: green;">▲ ${oldRank - newRank}</span>`; // Up
+                    } else {
+                        rankChangeHtml = `<span style="color: red;">▼ ${newRank - oldRank}</span>`; // Down
+                    }
+                }
+                row.innerHTML = `
+                    <td>${newRank}</td>
+                    <td>${p.name}</td>
+                    <td>${rankChangeHtml}</td>
+                    <td ${maxClass('powerScore', data.powerScore)}>${data.powerScore.toFixed(2)}</td>
+                    <td ${maxClass('currentQuality', data.currentQuality)}>${data.currentQuality}%</td>
+                    <td ${maxClass('improvementScore', data.improvementScore)}>${data.improvementScore.toFixed(2)}</td>
+                    <td ${maxClass('adjustedGaPer90', data.adjustedGaPer90)}>${data.adjustedGaPer90.toFixed(2)}</td>
+                    <td ${maxClass('usageScore', data.usageScore)}>${data.usageScore.toFixed(2)}</td>
+                    <td ${maxClass('ageValue', data.ageValue)}>+${data.ageValue}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            // Store current ranking for next update
+            previousPowerRanking = [...powerData];
+            
+            // Update sort indicators
+            const table = document.getElementById('power-ranking-table');
+            table.querySelectorAll('th[data-sort]').forEach(th => {
+                const indicator = th.querySelector('.sort-indicator');
+                if (indicator) indicator.className = 'sort-indicator';
+                if (th.dataset.sort === sortBy) {
+                    if (indicator) indicator.classList.add(sortOrder);
+                    th.dataset.order = sortOrder;
+                } else {
+                    delete th.dataset.order;
+                }
+            });
+        }
+        
+/* Events */
+        addPlayerBtn.addEventListener('click',()=>{clearModal();playerModal.style.display='flex';});
+        cancelBtn.addEventListener('click',()=>{playerModal.style.display='none';clearModal();});
+        confirmCancelBtn.addEventListener('click',()=>{confirmModal.style.display='none';});
+        ageAllBtn.addEventListener('click',ageAllPlayers);
+        fullMatchBtn.addEventListener('click',()=>{minutesInput.value='90';});
+        confirmMinutesBtn.addEventListener('click',()=>{const mins=parseInt(minutesInput.value);if(isNaN(mins)||mins<1||mins>120){alert('Please enter valid minutes (1-90)');return;}if(selectedPlayersForMinutes.length===0){alert('Please select at least one player');return;}addMinutesToSelected(mins);minutesInput.value='';});
+        undoMinutesBtn.addEventListener('click',undoLastMinutesChange);
+        undoGaBtn.addEventListener('click',undoLastGaChange);
+        resetTrainingBtn.addEventListener('click', resetTrainingCalculator);
+        endSeasonBtn.addEventListener('click', endSeason);
+        downloadDataBtn.addEventListener('click', downloadData);
+        uploadDataBtn.addEventListener('click', () => uploadFileInput.click());
+        uploadFileInput.addEventListener('change', uploadData);
+        
+document.getElementById('most-improved-table').addEventListener('click', function(e) {
+const header = e.target.closest('th');
+            if (header) {
+                const sortBy = header.dataset.sort;
+                if (!sortBy) return;
+                const currentSort = header.dataset.order || 'desc';
+                const newOrder = currentSort === 'desc' ? 'asc' : 'desc';
+                
+                // Remove indicators from other headers
+                document.querySelectorAll('#most-improved-table th[data-sort]').forEach(th => {
+    if (!th.querySelector('.sort-indicator')) {
+        const indicator = document.createElement('span');
+        indicator.className = 'sort-indicator';
+        indicator.textContent = '▼';
+        th.appendChild(indicator);
+    }
+});
+
+                // Set new order on current header
+                header.dataset.order = newOrder;
+                header.querySelector('.sort-indicator').classList.add(newOrder);
+                updateMostImprovedTable(sortBy, newOrder);
+            }
+        });
+        document.getElementById('power-ranking-table').addEventListener('click', function(e) {
+            const header = e.target.closest('th[data-sort]');
+            if (!header) return;
+            const sortBy = header.dataset.sort;
+            const currentOrder = header.dataset.order || 'desc';
+            const newOrder = currentOrder === 'desc' ? 'asc' : 'desc';
+            updatePowerRankingTable(sortBy, newOrder);
+        });
+        document.getElementById('minutaza-table').addEventListener('click',function(e){
+            if(e.target.classList.contains('reset-player-minutes-btn')){
+                const playerId=parseInt(e.target.dataset.playerId);
+                const player=players.find(p=>p.id===playerId);
+                if(player && confirm(`Are you sure you want to reset all minutes for ${player.name}?`)){
+                    player.minutes=Array(28).fill(0);
+                    player.totalMinutes=0;
+                    player.matchesPlayed=0;
+                    savePlayersToLocalStorage();
+                    updateMinutesTable();
+                }
+            }
+        });
+        saveBtn.addEventListener('click',()=>{const name=document.getElementById('player-name').value.trim();const positions=Array.from(document.getElementById('player-position').selectedOptions).map(o=>o.value);const age=parseInt(document.getElementById('player-age').value);const quality=parseInt(document.getElementById('player-quality').value);if(!name||positions.length===0||positions.length>3||!age||!quality){alert('Fill all fields (max 3 positions)');return;}if(currentPlayerId){const player=players.find(p=>p.id===currentPlayerId);if(player){player.name=name;player.positions=positions;player.position=positions[0];player.age=age;player.quality=quality;player.initialQuality=quality;}}else{addPlayer(name,positions,age,quality);}savePlayersToLocalStorage();playerModal.style.display='none';clearModal();renderPlayers();});
+        /* Init */
+        loadPlayersFromLocalStorage();
+        loadArchivedPlayersFromStorage();
+        renderPlayers();
+        setupTrainingCalculator();
+        loadAndRenderArchives();
+        // Add indicators to power ranking table
+        document.querySelectorAll('#power-ranking-table th[data-sort]').forEach(th => {
+            const indicator = document.createElement('span');
+            indicator.className = 'sort-indicator';
+            indicator.textContent = '▼';
+            th.appendChild(indicator);
+        });
+        
+        const archivedTable = document.getElementById('archived-players-table');
+        if (archivedTable) {
+            archivedTable.addEventListener('click', function(e) {
+                const header = e.target.closest('th[data-sort]');
+                if (!header) return;
+
+                const sortBy = header.dataset.sort;
+                const currentOrder = header.dataset.order || 'asc'; // Default to 'asc'
+                const newOrder = currentOrder === 'asc' ? 'desc' : 'asc';
+
+                // Update global state
+                archivedSortBy = sortBy;
+                archivedSortOrder = newOrder;
+
+                // Call render which will handle sorting and indicator updates
+                renderArchivedPlayers();
+            });
+        }
+        renderArchivedPlayers();
+    });
+</script>
+</body>
+</html>
