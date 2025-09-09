@@ -10,7 +10,7 @@ Go to the Progress tab and click the green "+" button to add players. Give them 
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-1.Minutes Tab ![Minutes] https://github.com/barnynho74/Top-Eleven-Stats-Tracker/blob/main/1%20minutes.png?raw=true
+1.Minutes Tab ![Minutes] https://github.com/barnynho74/Top-Eleven-Stats-Tracker/blob/53070f5f77f9761d95c4ad70e803b28a4da9667c/1%20minutes.png
 After EVERY COMPETITIVE MATCH (except FA matches), enter each player’s minutes on the Minutes tab. Don’t forget the substitutes!
 
 👉 PRO TIP: first select all the players who played the full 90 minutes and Confirm them. After that, handle the subs. 
