@@ -119,6 +119,7 @@
         .training-actions {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             margin-top: 10px;
         }
         .reset-training-btn {
@@ -129,6 +130,23 @@
             padding: 6px 12px;
             cursor: pointer;
             font-size: 13px;
+        }
+        .edit-training-times-btn {
+            background-color: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .training-time-input {
+            width: 60px;
+            font-size: 13px;
+            padding: 4px;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 3px;
         }
         .note-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
         .note-tag-btn{background-color:#f0f0f0;color:#333;border:1px solid #ccc;border-radius:12px;padding:3px 10px;font-size:11px;cursor:pointer;transition:all .2s;}
@@ -239,7 +257,7 @@
     <div class="top-bar">
         <div class="tab active" data-tab="progress">PROGRESS</div>
         <div class="tab" data-tab="minutes">MINUTES</div>
-        <div class="tab" data-tab="goals-assists">GOALS-ASSISTS</div>
+        <div class="tab" data-tab="goals-assists">GOALS & ASSISTS</div>
         <div class="tab" data-tab="most-improved">MOST IMPROVED</div>
         <div class="tab" data-tab="power-ranking">POWER RANKING</div>
         <div class="tab" data-tab="archived-players">ARCHIVED PLAYERS</div>
@@ -261,6 +279,9 @@
                 <button id="upload-data-btn">Upload Data File</button>
                 <input type="file" id="upload-file-input" style="display:none;" accept=".json">
             </div>
+            <p style="font-size: 12px; color: #666; margin-top: -5px; max-width: 350px;">
+                Download a single JSON file containing all current players, archived seasons, and settings. Uploading will overwrite all existing data.
+            </p>
             <div id="archive-list">
                 <p>No archived seasons yet.</p>
             </div>
@@ -361,13 +382,22 @@
                 <div class="training-summary">
                     <p>Player fatigue must be between: <span id="training-range"></span></p>
                 </div>
-                <button class="reset-training-btn" id="reset-training-btn">Reset</button>
+                <div>
+                    <button class="edit-training-times-btn" id="edit-training-times-btn">Edit Times</button>
+                    <button class="reset-training-btn" id="reset-training-btn">Reset Bonuses</button>
+                </div>
             </div>
         </div>
     </div>
     </div>
     <div id="power-ranking-content" class="content">
         <h2>Player Power Ranking</h2>
+        <div class="minutes-form" style="margin-bottom: 20px;">
+            <button class="confirm-minutes-btn" id="update-power-ranking-btn">Update Power Ranking</button>
+            <p style="font-size: 12px; color: #666; margin-top: 8px; max-width: 600px;">
+                Click to calculate the latest Power Ranking. The '+/-' column compares the new ranks to the last time you updated.
+            </p>
+        </div>
         <div class="table-container">
             <table id="power-ranking-table">
                 <thead>
@@ -430,7 +460,8 @@ PowerScore = (0.15 × CurrentQuality) + (0.25 × ImprovementScore) + (0.30 × Ad
                         <th data-sort="matches">Matches <span class="sort-indicator">▼</span></th>
                         <th data-sort="goals">Goals <span class="sort-indicator">▼</span></th>
                         <th data-sort="assists">Assists <span class="sort-indicator">▼</span></th>
-                        <th>Delete</th>
+                        <th data-sort="archiveReason">Reason</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -536,7 +567,8 @@ PowerScore = (0.15 × CurrentQuality) + (0.25 × ImprovementScore) + (0.30 × Ad
         let gaHistory=[];
         let talentChart = null;
         let archivedPlayers = [];
-        let previousPowerRanking = [];
+        let previousPowerRanking = []; // This will now be loaded from localStorage
+        let isEditingTrainingTimes = false;
         /* ARCHIVED PLAYERS STORAGE */
         function loadArchivedPlayersFromStorage() {
             archivedPlayers = JSON.parse(localStorage.getItem('archivedPlayers') || '[]');
@@ -556,7 +588,15 @@ PowerScore = (0.15 × CurrentQuality) + (0.25 × ImprovementScore) + (0.30 × Ad
             document.getElementById('avg-age').textContent=avgAge;
         }
         function calculateDayAverages(){const averages=Array(28).fill(0);const counts=Array(28).fill(0);players.forEach(player=>{player.progress.forEach((value,day)=>{if(value!==null){averages[day]+=value;counts[day]++;}});});return averages.map((sum,day)=>{return counts[day]>0?(sum/counts[day]).toFixed(2)+'':'-';});}
-        function ensureGaFields(p){['leagueGoals','leagueAssists','clGoals','clAssists','cupGoals','cupAssists'].forEach(f=>{if(typeof p[f]!=='number')p[f]=0;});if(p.comment===undefined)p.comment='';if(!p.tags){p.tags={keep:false,sell:false,slowTrainer:false,hotProspect:false};}}
+        function ensureGaFields(p){
+            ['leagueGoals','leagueAssists','clGoals','clAssists','cupGoals','cupAssists'].forEach(f=>{if(typeof p[f]!=='number')p[f]=0;});
+            ['lifetimeMinutes', 'lifetimeMatches', 'lifetimeGoals', 'lifetimeAssists'].forEach(f => {
+                if (typeof p[f] !== 'number') p[f] = 0;
+            });
+            if(p.comment===undefined)p.comment='';
+            if(!p.tags){p.tags={keep:false,sell:false,slowTrainer:false,hotProspect:false};}
+            if(!p.archiveReason) p.archiveReason = 'other'; // Default reason
+        }
         /* Storage */
         function loadPlayersFromLocalStorage(){const saved=localStorage.getItem('topElevenPlayers');if(saved){players=JSON.parse(saved);players.forEach(p=>{if(!p.positions){p.positions=[p.position||''];}if(!p.position)p.position=p.positions[0];if(!p.progress)p.progress=Array(28).fill(null);if(!p.minutes)p.minutes=Array(28).fill(0);if(!p.initialQuality)p.initialQuality=p.quality;ensureGaFields(p);});}}
         function savePlayersToLocalStorage(){localStorage.setItem('topElevenPlayers',JSON.stringify(players));}
@@ -580,6 +620,15 @@ PowerScore = (0.15 × CurrentQuality) + (0.25 × ImprovementScore) + (0.30 × Ad
             
             // 4. Reset players for the new season
             players.forEach(p => {
+                // Accumulate lifetime stats before resetting
+                const seasonGoals = (p.leagueGoals || 0) + (p.clGoals || 0) + (p.cupGoals || 0);
+                const seasonAssists = (p.leagueAssists || 0) + (p.clAssists || 0) + (p.cupAssists || 0);
+                
+                p.lifetimeMinutes = (p.lifetimeMinutes || 0) + (p.totalMinutes || 0);
+                p.lifetimeMatches = (p.lifetimeMatches || 0) + (p.matchesPlayed || 0);
+                p.lifetimeGoals = (p.lifetimeGoals || 0) + seasonGoals;
+                p.lifetimeAssists = (p.lifetimeAssists || 0) + seasonAssists;
+                // Reset for new season
                 p.initialQuality = p.quality; // New initial quality is the last season's final quality
                 p.progress = Array(28).fill(null);
                 p.minutes = Array(28).fill(0);
@@ -601,7 +650,7 @@ PowerScore = (0.15 × CurrentQuality) + (0.25 × ImprovementScore) + (0.30 × Ad
             loadAndRenderArchives();
         }
         /* CRUD */
-        function addPlayer(name,positionsArr,age,quality){const primary=positionsArr[0];const player={id:Date.now(),name,position:primary,positions:positionsArr,age,quality,initialQuality:quality,progress:Array(28).fill(null),minutes:Array(28).fill(0),leagueGoals:0,leagueAssists:0,clGoals:0,clAssists:0,cupGoals:0,cupAssists:0,totalMinutes:0,matchesPlayed:0,comment:'',tags:{keep:false,sell:false,slowTrainer:false,hotProspect:false}};players.push(player);return player;}
+        function addPlayer(name,positionsArr,age,quality){const primary=positionsArr[0];const player={id:Date.now(),name,position:primary,positions:positionsArr,age,quality,initialQuality:quality,progress:Array(28).fill(null),minutes:Array(28).fill(0),leagueGoals:0,leagueAssists:0,clGoals:0,clAssists:0,cupGoals:0,cupAssists:0,totalMinutes:0,matchesPlayed:0,comment:'',tags:{keep:false,sell:false,slowTrainer:false,hotProspect:false}, lifetimeMinutes: 0, lifetimeMatches: 0, lifetimeGoals: 0, lifetimeAssists: 0};players.push(player);return player;}
         function editPlayer(playerId){const player=players.find(p=>p.id===playerId);if(!player)return;currentPlayerId=playerId;document.getElementById('modal-title').textContent='Edit Player';document.getElementById('player-name').value=player.name;document.getElementById('player-age').value=player.age;document.getElementById('player-quality').value=player.quality;Array.from(document.getElementById('player-position').options).forEach(o=>{o.selected=player.positions.includes(o.value);});playerModal.style.display='flex';}
         function confirmDeletePlayer(playerId){const player=players.find(p=>p.id===playerId);if(!player)return;document.getElementById('player-to-delete').textContent=`${player.name} (${player.positions.join('/')})`;confirmModal.style.display='flex';confirmDeleteBtn.onclick=function(){players=players.filter(p=>p.id!==playerId);savePlayersToLocalStorage();renderPlayers();confirmModal.style.display='none';};}
         function ageAllPlayers(){players.forEach(p=>{if(p.age<45)p.age++;});savePlayersToLocalStorage();renderPlayers();}
@@ -665,6 +714,7 @@ PowerScore = (0.15 × CurrentQuality) + (0.25 × ImprovementScore) + (0.30 × Ad
             if (!confirm(`Are you sure you want to archive ${playerToArchive.name}?`)) return;
             // Remove from active players, push to archivedPlayers
             players.splice(idx, 1);
+            playerToArchive.archiveReason = 'other'; // Set default reason on archive
             archivedPlayers.push(playerToArchive);
             savePlayersToLocalStorage();
             saveArchivedPlayersToStorage();
@@ -678,11 +728,12 @@ PowerScore = (0.15 × CurrentQuality) + (0.25 × ImprovementScore) + (0.30 × Ad
         let archivedSortOrder = 'asc';
         function renderArchivedPlayers() {
             loadArchivedPlayersFromStorage();
+            archivedPlayers.forEach(p => ensureGaFields(p)); // Ensure all fields exist
     const tbody = document.querySelector('#archived-players-table tbody');
     if (!tbody) return;
     tbody.innerHTML = '';
             if (!archivedPlayers.length) {
-                tbody.innerHTML = '<tr><td colspan="8">No players have been archived yet.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9">No players have been archived yet.</td></tr>';
                 return;
             }
             // Prepare data for sorting
@@ -713,6 +764,7 @@ PowerScore = (0.15 × CurrentQuality) + (0.25 × ImprovementScore) + (0.30 × Ad
                     matches: p.matchesPlayed || 0,
                     goals: totalGoals,
                     assists: totalAssists,
+                    archiveReason: p.archiveReason || 'other',
                     player: p
                 };
             });
@@ -732,6 +784,18 @@ PowerScore = (0.15 × CurrentQuality) + (0.25 × ImprovementScore) + (0.30 × Ad
                 // Name (bold surname)
                 const nameParts = p.name.split(' ');
                 let nameHtml = p.name.includes(' ') ? `${p.name.substring(0, p.name.lastIndexOf(' '))} <span class="player-name-bold">${p.name.substring(p.name.lastIndexOf(' ') + 1)}</span>` : `<span class="player-name-bold">${p.name}</span>`;
+                
+                const reasons = {
+                    sold: 'Sold',
+                    retired: 'Retired',
+                    end_of_contract: 'End of Contract',
+                    not_good_enough: 'Not Good Enough',
+                    other: 'Other'
+                };
+                let reasonOptions = '';
+                for(const [key, value] of Object.entries(reasons)) {
+                    reasonOptions += `<option value="${key}" ${item.archiveReason === key ? 'selected' : ''}>${value}</option>`;
+                }
                 row.innerHTML = `
                     <td>${nameHtml}</td>
                     <td>${p.positions.join('/')}</td>
@@ -740,6 +804,7 @@ PowerScore = (0.15 × CurrentQuality) + (0.25 × ImprovementScore) + (0.30 × Ad
                     <td><input type="number" class="editable-stat" value="${item.matches}" data-idx="${item.idx}" data-field="matchesPlayed"></td>
                     <td><input type="number" class="editable-stat" value="${item.goals}" data-idx="${item.idx}" data-field="goals"></td>
                     <td><input type="number" class="editable-stat" value="${item.assists}" data-idx="${item.idx}" data-field="assists"></td>
+                    <td><select class="editable-stat" data-idx="${item.idx}" data-field="archiveReason">${reasonOptions}</select></td>
                     <td><button class='delete-btn' data-idx='${item.idx}'>Delete</button></td>
                 `;
                 tbody.appendChild(row);
@@ -775,8 +840,10 @@ PowerScore = (0.15 × CurrentQuality) + (0.25 × ImprovementScore) + (0.30 × Ad
                     e.stopPropagation();
                     const idx = parseInt(this.dataset.idx);
                     const field = this.dataset.field;
-                    const value = parseInt(this.value);
-                    if (isNaN(value)) return;
+                    const isNumeric = this.type === 'number';
+                    const value = isNumeric ? parseInt(this.value) : this.value;
+                    if (isNumeric && isNaN(value)) return;
+                    
                     const player = archivedPlayers[idx];
                     if (field === 'goals' || field === 'assists') {
                         // This is a simplified update. If individual competition stats are needed, this would need to be more complex.
@@ -784,13 +851,15 @@ PowerScore = (0.15 × CurrentQuality) + (0.25 × ImprovementScore) + (0.30 × Ad
                         // To keep things simple, we'll assign the total value to the 'league' stat
                         // and ensure other competition stats are preserved if they exist.
                         if (field === 'goals') {
+                            // Set the league goals to the new total, and reset others.
                             player.leagueGoals = value;
-                            player.clGoals = player.clGoals || 0;
-                            player.cupGoals = player.cupGoals || 0;
+                            player.clGoals = 0;
+                            player.cupGoals = 0;
                         } else { // assists
+                            // Set the league assists to the new total, and reset others.
                             player.leagueAssists = value;
-                            player.clAssists = player.clAssists || 0;
-                            player.cupAssists = player.cupAssists || 0;
+                            player.clAssists = 0;
+                            player.cupAssists = 0;
                         }
                     } else {
                         player[field] = value;
@@ -948,11 +1017,28 @@ PowerScore = (0.15 × CurrentQuality) + (0.25 × ImprovementScore) + (0.30 × Ad
             }
             
             archiveListDiv.innerHTML = ''; // Clear existing
-            // Later, we can add more detailed views here
+            
             archives.reverse().forEach(archive => { // Show newest first
-                const archiveEntry = document.createElement('div');
-                archiveEntry.innerHTML = `<strong>Season ${archive.seasonNumber}</strong> (Ended on: ${archive.endDate}) - ${archive.players.length} players`;
-                archiveListDiv.appendChild(archiveEntry);
+                const details = document.createElement('details');
+                details.className = 'archive-details';
+                
+                const summary = document.createElement('summary');
+                summary.className = 'archive-summary';
+                summary.innerHTML = `<strong>Season ${archive.seasonNumber}</strong> (Ended on: ${archive.endDate}) - ${archive.players.length} players`;
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'archive-content';
+                
+                details.appendChild(summary);
+                details.appendChild(contentDiv);
+                
+                details.addEventListener('toggle', () => {
+                    if (details.open && !contentDiv.hasChildNodes()) {
+                        renderArchivedSeasonPlayers(contentDiv, archive.players);
+                    }
+                });
+                
+                archiveListDiv.appendChild(details);
             });
         }
         
@@ -1014,6 +1100,104 @@ PowerScore = (0.15 × CurrentQuality) + (0.25 × ImprovementScore) + (0.30 × Ad
             
             // Reset the input so the same file can be uploaded again if needed
             event.target.value = '';
+        }
+
+        function renderArchivedSeasonPlayers(container, archivedPlayers) {
+            container.innerHTML = ''; // Clear container
+
+            // Header with week/day numbers
+            const header = document.createElement('div');
+            header.className = 'player-card';
+            header.style.cssText = 'pointer-events: none; background-color: transparent; box-shadow: none;';
+
+            const dummyInfo = document.createElement('div');
+            dummyInfo.className = 'player-info';
+            dummyInfo.style.visibility = 'hidden';
+            header.appendChild(dummyInfo);
+
+            const weeksContainer = document.createElement('div');
+            weeksContainer.className = 'weeks-container';
+            for (let week = 1; week <= 4; week++) {
+                const weekHeader = document.createElement('div');
+                weekHeader.className = 'week-header';
+                const weekLabel = document.createElement('div');
+                weekLabel.className = 'week-label';
+                weekLabel.textContent = `Week ${week}:`;
+                weekHeader.appendChild(weekLabel);
+                const daysCells = document.createElement('div');
+                daysCells.className = 'days-header';
+                const startDay = (week - 1) * 7 + 1;
+                const endDay = Math.min(week * 7, 28);
+                for (let i = startDay; i <= endDay; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'day-cell';
+                    cell.textContent = i;
+                    daysCells.appendChild(cell);
+                }
+                weekHeader.appendChild(daysCells);
+                weeksContainer.appendChild(weekHeader);
+            }
+            header.appendChild(weeksContainer);
+            container.appendChild(header);
+
+            // Player rows
+            archivedPlayers.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'player-card';
+
+                const info = document.createElement('div');
+                info.className = 'player-info';
+                
+                let currentQuality = p.initialQuality;
+                if (p.progress) {
+                    for (let i = p.progress.length - 1; i >= 0; i--) {
+                        if (p.progress[i] !== null && p.progress[i] !== undefined) {
+                            currentQuality = p.progress[i];
+                            break;
+                        }
+                    }
+                }
+                const totalGoals = (p.leagueGoals || 0) + (p.clGoals || 0) + (p.cupGoals || 0);
+                const totalAssists = (p.leagueAssists || 0) + (p.clAssists || 0) + (p.cupAssists || 0);
+                const totalMinutes = p.totalMinutes || 0;
+                const matchesPlayed = p.matchesPlayed || 0;
+                info.innerHTML = `
+                    <span class="position-label ${getPositionCategory(p.positions[0])}">${p.positions.join('/')}</span>
+                    <span style="min-width: 180px;">${p.name} (${p.age}, ${currentQuality}%)</span>
+                    <span style="margin-left: 15px; font-size: 11px; color: #333;">
+                        <b>Min:</b> ${totalMinutes} | <b>M:</b> ${matchesPlayed} | <b>G:</b> ${totalGoals} | <b>A:</b> ${totalAssists}
+                    </span>
+                `;
+                card.appendChild(info);
+
+                const playerWeeksContainer = document.createElement('div');
+                playerWeeksContainer.className = 'weeks-container';
+                for (let week = 1; week <= 4; week++) {
+                    const playerWeekHeader = document.createElement('div');
+                    playerWeekHeader.className = 'week-header';
+                    const playerWeekLabel = document.createElement('div');
+                    playerWeekLabel.className = 'week-label';
+                    playerWeekLabel.style.visibility = 'hidden';
+                    playerWeekHeader.appendChild(playerWeekLabel);
+                    
+                    const daysDiv = document.createElement('div');
+                    daysDiv.className = 'player-days';
+                    const startDay = (week - 1) * 7;
+                    const endDay = Math.min(week * 7 - 1, 27);
+                    for (let i = startDay; i <= endDay; i++) {
+                        const dayCell = document.createElement('div');
+                        dayCell.className = 'player-day-input'; // Use same class for styling
+                        dayCell.style.backgroundColor = '#f0f0f0';
+                        dayCell.style.border = '1px solid #e0e0e0';
+                        dayCell.textContent = p.progress[i] || '';
+                        daysDiv.appendChild(dayCell);
+                    }
+                    playerWeekHeader.appendChild(daysDiv);
+                    playerWeeksContainer.appendChild(playerWeekHeader);
+                }
+                card.appendChild(playerWeeksContainer);
+                container.appendChild(card);
+            });
         }
         
         function updateMinutesTable(){const tbody=document.querySelector('#minutes-table tbody');tbody.innerHTML='';
@@ -1253,14 +1437,17 @@ function updateMostImprovedTable(sortBy = 'improvement', sortOrder = 'desc') {
 }
         
         function setupTrainingCalculator() {
-            const trainingTimes = ['23:10', '2:10', '5:10', '8:10', '11:10', '14:10', '17:10', '20:10'];
+            let trainingTimes = JSON.parse(localStorage.getItem('trainingTimes') || '["23:10", "2:10", "5:10", "8:10", "11:10", "14:10", "17:10", "20:10"]');
             const tbody = document.querySelector('#training-table tbody');
             tbody.innerHTML = ''; // Clear previous
             
-            trainingTimes.forEach(time => {
+            trainingTimes.forEach((time, index) => {
                 const row = document.createElement('tr');
+                let timeCellContent = isEditingTrainingTimes 
+                    ? `<td><input type="text" class="training-time-input" value="${time}" data-index="${index}"></td>`
+                    : `<td>${time}</td>`;
                 row.innerHTML = `
-                    <td>${time}</td>
+                    ${timeCellContent}
                     <td><input type="number" class="training-input" data-time="${time}" min="0" placeholder="0"></td>
                 `;
                 tbody.appendChild(row);
@@ -1312,6 +1499,38 @@ function updateMostImprovedTable(sortBy = 'improvement', sortOrder = 'desc') {
                 input.value = '';
             });
             updateTrainingSummary();
+        }
+        function handleEditSaveTrainingTimes() {
+            const btn = document.getElementById('edit-training-times-btn');
+            isEditingTrainingTimes = !isEditingTrainingTimes;
+            if (isEditingTrainingTimes) {
+                // Now in edit mode
+                btn.textContent = 'Save Times';
+                btn.style.backgroundColor = '#28a745';
+                setupTrainingCalculator(); // Re-render with inputs
+            } else {
+                // Saving changes
+                const timeInputs = document.querySelectorAll('.training-time-input');
+                const newTimes = Array.from(timeInputs).map(input => input.value.trim());
+                
+                // Basic validation
+                if (newTimes.some(t => !/^\d{1,2}:\d{2}$/.test(t))) {
+                    alert('Invalid time format. Please use HH:MM.');
+                    isEditingTrainingTimes = true; // Stay in edit mode
+                    return;
+                }
+                localStorage.setItem('trainingTimes', JSON.stringify(newTimes));
+                
+                btn.textContent = 'Edit Times';
+                btn.style.backgroundColor = '#17a2b8';
+                
+                // Important: Clear old bonuses as the keys (times) have changed
+                localStorage.removeItem('trainingBonuses'); 
+                
+                setupTrainingCalculator(); // Re-render with new times
+                updateTrainingSummary(); // Recalculate summary
+                alert('Training times updated. All training bonuses have been reset.');
+            }
         }
         
         function renderTalentChart(improvementData) {
@@ -1395,14 +1614,8 @@ function updateMostImprovedTable(sortBy = 'improvement', sortOrder = 'desc') {
             if (age >= 26 && age <= 28) return 5;
             return 0;
         }
-        
-        function updatePowerRankingTable(sortBy = 'powerScore', sortOrder = 'desc') {
-            const tbody = document.querySelector('#power-ranking-table tbody');
-            tbody.innerHTML = '';
-            
-            const oldRanks = new Map(previousPowerRanking.map((p, i) => [p.player.id, i + 1]));
-            
-            const powerData = players.map(p => {
+        function calculatePowerData() {
+            return players.map(p => {
                 let currentQuality = p.initialQuality;
                 for (let i = p.progress.length - 1; i >= 0; i--) {
                     if (p.progress[i] !== null && p.progress[i] !== undefined) {
@@ -1435,19 +1648,14 @@ function updateMostImprovedTable(sortBy = 'improvement', sortOrder = 'desc') {
                     usageScore,
                     ageValue
                 };
-            });
+            }).sort((a, b) => b.powerScore - a.powerScore); // Always sort by score descending
+        }
+        function renderPowerRankingTable(powerData) {
+            const tbody = document.querySelector('#power-ranking-table tbody');
+            tbody.innerHTML = '';
             
-            // Sort
-            powerData.sort((a, b) => {
-                let valA = a[sortBy], valB = b[sortBy];
-                if (sortBy === 'player') { valA = a.player.name; valB = b.player.name; }
-                if (typeof valA === 'string') {
-                    return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-                }
-                return sortOrder === 'asc' ? valA - valB : valB - valA;
-            });
-            
-            // Find max values for color coding, ignoring zero values
+            // This is the "previous" ranking from the last update
+            const oldRanks = new Map(previousPowerRanking.map((p, i) => [p.player.id, i + 1]));
             const maxScores = {
                 powerScore: Math.max(0, ...powerData.map(d => d.powerScore)),
                 currentQuality: Math.max(0, ...powerData.map(d => d.currentQuality)),
@@ -1463,7 +1671,7 @@ function updateMostImprovedTable(sortBy = 'improvement', sortOrder = 'desc') {
                 
                 const newRank = index + 1;
                 const oldRank = oldRanks.get(p.id);
-                let rankChangeHtml = '<span style="color: #999;">–</span>'; // Default for no change or new player
+                let rankChangeHtml = '<span style="color: #999;">–</span>'; // Default
                 if (oldRank && oldRank !== newRank) {
                     if (newRank < oldRank) {
                         rankChangeHtml = `<span style="color: green;">▲ ${oldRank - newRank}</span>`; // Up
@@ -1484,22 +1692,17 @@ function updateMostImprovedTable(sortBy = 'improvement', sortOrder = 'desc') {
                 `;
                 tbody.appendChild(row);
             });
+        }
+        
+        function updateAndSavePowerRanking() {
+            // Recalculate and render the table
+            const newPowerData = calculatePowerData();
+            renderPowerRankingTable(newPowerData);
+            // Save the *new* ranking as the "previous" for the next update
+            previousPowerRanking = [...newPowerData];
+            localStorage.setItem('powerRankingHistory', JSON.stringify(previousPowerRanking));
             
-            // Store current ranking for next update
-            previousPowerRanking = [...powerData];
-            
-            // Update sort indicators
-            const table = document.getElementById('power-ranking-table');
-            table.querySelectorAll('th[data-sort]').forEach(th => {
-                const indicator = th.querySelector('.sort-indicator');
-                if (indicator) indicator.className = 'sort-indicator';
-                if (th.dataset.sort === sortBy) {
-                    if (indicator) indicator.classList.add(sortOrder);
-                    th.dataset.order = sortOrder;
-                } else {
-                    delete th.dataset.order;
-                }
-            });
+            alert('Power Ranking updated!');
         }
         
 /* Events */
@@ -1512,6 +1715,8 @@ function updateMostImprovedTable(sortBy = 'improvement', sortOrder = 'desc') {
         undoMinutesBtn.addEventListener('click',undoLastMinutesChange);
         undoGaBtn.addEventListener('click',undoLastGaChange);
         resetTrainingBtn.addEventListener('click', resetTrainingCalculator);
+        document.getElementById('edit-training-times-btn').addEventListener('click', handleEditSaveTrainingTimes);
+        document.getElementById('update-power-ranking-btn').addEventListener('click', updateAndSavePowerRanking);
         endSeasonBtn.addEventListener('click', endSeason);
         downloadDataBtn.addEventListener('click', downloadData);
         uploadDataBtn.addEventListener('click', () => uploadFileInput.click());
@@ -1541,14 +1746,7 @@ const header = e.target.closest('th');
                 updateMostImprovedTable(sortBy, newOrder);
             }
         });
-        document.getElementById('power-ranking-table').addEventListener('click', function(e) {
-            const header = e.target.closest('th[data-sort]');
-            if (!header) return;
-            const sortBy = header.dataset.sort;
-            const currentOrder = header.dataset.order || 'desc';
-            const newOrder = currentOrder === 'desc' ? 'asc' : 'desc';
-            updatePowerRankingTable(sortBy, newOrder);
-        });
+        // Removed the event listener for sorting the power ranking table by clicking headers.
         document.getElementById('minutes-table').addEventListener('click',function(e){
             if(e.target.classList.contains('reset-player-minutes-btn')){
                 const playerId=parseInt(e.target.dataset.playerId);
@@ -1566,16 +1764,14 @@ const header = e.target.closest('th');
         /* Init */
         loadPlayersFromLocalStorage();
         loadArchivedPlayersFromStorage();
+        // Load and render previous power ranking from storage on startup
+        previousPowerRanking = JSON.parse(localStorage.getItem('powerRankingHistory') || '[]');
+        renderPowerRankingTable(previousPowerRanking);
+        
         renderPlayers();
         setupTrainingCalculator();
         loadAndRenderArchives();
-        // Add indicators to power ranking table
-        document.querySelectorAll('#power-ranking-table th[data-sort]').forEach(th => {
-            const indicator = document.createElement('span');
-            indicator.className = 'sort-indicator';
-            indicator.textContent = '▼';
-            th.appendChild(indicator);
-        });
+        // No longer adding sort indicators to power ranking table headers
         
         const archivedTable = document.getElementById('archived-players-table');
         if (archivedTable) {
