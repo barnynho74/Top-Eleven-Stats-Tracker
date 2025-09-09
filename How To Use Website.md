@@ -10,19 +10,23 @@ Go to the Progress tab and click the green "+" button to add players. Give them 
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-1.Minutes Tab ![Minutes] https://github.com/barnynho74/Top-Eleven-Stats-Tracker/blob/53070f5f77f9761d95c4ad70e803b28a4da9667c/1%20minutes.png
+1.Minutes Tab <img width="1837" height="888" alt="image" src="https://github.com/user-attachments/assets/0f8b5162-a2e8-4226-a3b9-185b33de34c7" />
+
 
 After EVERY COMPETITIVE MATCH (except FA matches), enter each player’s minutes on the Minutes tab. Don’t forget the substitutes!
 
-👉 PRO TIP: first select all the players who played the full 90 minutes and Confirm them. After that, handle the subs. 
+👉 PRO TIP: First select all the players who played the full 90 minutes and Confirm them. After that, handle the subs. 
 My personal method:
 -> Start with the player who got subbed out and type in the minutes he played
 -> Then select the player who came in and simply subtract that number from 90. That way you won’t forget who played how long
+
+IMPORTANT: Dont be confused if the number of matches don't match with the number of matches in TopEleven game! Tool takes in consideration even if player played for only few minutes, where game needs to register player to play around 20 minutes or so, hence the game displays less matches than tool.
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-2. Goals & Assists Tab ![GandA] https://github.com/barnynho74/Top-Eleven-Stats-Tracker/blob/main/2%20goals%20assists.png?raw=true
+2. Goals & Assists Tab <img width="1865" height="1240" alt="image" src="https://github.com/user-attachments/assets/4159da0b-110a-4da7-926d-d59382044109" />
+
 
 After you type in minutes from step 1, move on to the Goals & Assists tab and enter goals and assists for each player.
 BE CAREFULL to select the correct competition (League, Champions League, or Cup). Here you can see both total contributions across all competitions and per-90 stats for each player.
@@ -30,7 +34,8 @@ BE CAREFULL to select the correct competition (League, Champions League, or Cup)
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-3. Progress Updates & Training ![progress] https://github.com/barnynho74/Top-Eleven-Stats-Tracker/blob/main/4%20progress.png?raw=true
+3. Progress Updates & Training <img width="1829" height="2262" alt="image" src="https://github.com/user-attachments/assets/55e0cee8-b88a-451d-94e5-ff2ebf2dda0b" />
+
 At the end of the day, once you’ve played your LAST COMPETITVE MATCH (⚠️ FA matches do NOT count – they don’t consume condition, players don’t improve, and goals/assists aren’t tracked), you should:
        1. First train your players and then
        2. Log their daily progress in the Progress tab (click on each player and update the right box for the day)
@@ -42,7 +47,8 @@ The green ARCHIVE button saves a player into your club history (perfect for lege
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-4. Most Improved Tab ![improved] https://github.com/barnynho74/Top-Eleven-Stats-Tracker/blob/main/3%20most%20improved.png?raw=true
+4. Most Improved Tab <img width="1865" height="2353" alt="image" src="https://github.com/user-attachments/assets/ed3b4937-31b0-489f-9489-1c1329c548bc" />
+
 This tab summarizes everything: progress, stats, and a chart showing how players improve based on their age.
 
 👉 PRO TIP: The players who usually improve the most are in the 18–21 age range. Investing in them pays off long term.
@@ -57,13 +63,15 @@ So I can train my players down to 76–81% condition now, and by match time they
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-5. Archived Players Tab ![archivedpl] https://github.com/barnynho74/Top-Eleven-Stats-Tracker/blob/main/5%20archived%20players.png?raw=true
+5. Archived Players Tab <img width="1862" height="862" alt="image" src="https://github.com/user-attachments/assets/67115b15-3412-4b54-9cf8-4c85a9f35621" />
+
 Pretty straightforward — this tab lists all players you’ve archived (sold, retired, or just saved for sake of it).
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-6. Power Ranking Tab ![powerrank] https://github.com/barnynho74/Top-Eleven-Stats-Tracker/blob/main/6%20power%20ranking.png?raw=true
+6. Power Ranking Tab <img width="1865" height="2022" alt="image" src="https://github.com/user-attachments/assets/b2919eaa-c894-49db-aa71-126e54a0a8ce" />
+
 This tab shows each player’s overall “power score.” It takes into account several factors (quality, improvement, goals/assists, usage, and age bonus), 
 then combines them into a single score using a formula. Basically, it’s a way to quickly see who your most valuable and impactful players are.
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
