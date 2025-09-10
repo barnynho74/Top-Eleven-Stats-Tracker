@@ -419,30 +419,35 @@
         <div class="formula-explanation">
             <h3>How the Power Score is Calculated</h3>
             <div class="formula">
-PowerScore = (0.15 × CurrentQuality) + (0.25 × ImprovementScore) + (0.30 × AdjustedG+AScore) + (0.20 × UsageScore) + (0.10 × AgeValue)
+PowerScore = (QualityScore) + (ImprovementScore) + (G+A_Score) + (UsageScore) + (AgeBonus)
             </div>
-            <h4>1. Current Quality (15%)</h4>
-            <p>The player's raw quality percentage serves as the base for the score.</p>
-            <h4>2. Improvement Score (25%)</h4>
-            <div class="formula">ImprovementScore = (CurrentQuality × 0.6) + (Improvement × 0.4)</div>
-            <p>This rewards both high current ability and significant progress over the season.</p>
-            <h4>3. Adjusted G+A Score (30%)</h4>
-            <p>Calculates a player's goal and assist contribution per 90 minutes, weighted by their position to reflect the difficulty and importance of contributions from different areas of the pitch.</p>
-            <ul>
-                <li><strong>Forwards (ST, AMs):</strong> <code>Goal = 1.0 pts</code>, <code>Assist = 0.7 pts</code></li>
-                <li><strong>Midfielders (MCs, ML/R, DMC):</strong> <code>Goal = 1.3 pts</code>, <code>Assist = 1.0 pts</code></li>
-                <li><strong>Defenders (DCs, DL/R, GK):</strong> <code>Goal = 1.6 pts</code>, <code>Assist = 1.2 pts</code></li>
+            <h4>1. Quality Score</h4>
+            <p>Calculates a player's value based on their current quality percentage using a cubic polynomial curve. This rewards higher-quality players exponentially, reflecting their on-pitch dominance.</p>
+            <div class="formula">f(x) = 0.0001758x³ - 0.05093x² + 4.9956x - 156.47</div>
+            <h4>2. Improvement Score</h4>
+            <p>Assigns points based on the total quality improvement since the start of the season. This score is mapped to specific thresholds, rewarding significant progress.</p>
+             <ul>
+                <li><strong>+1-4% Increase:</strong> 0 points</li>
+                <li><strong>+5-6% Increase:</strong> 1 point</li>
+                <li><strong>+7-10% Increase:</strong> 2 points</li>
+                 <li>...and so on, up to 20 points for a 30% increase.</li>
             </ul>
-            <h4>4. Usage Score (20%)</h4>
-            <div class="formula">UsageScore = (Total Goals + Total Assists) per 90 minutes</div>
-            <p>A straightforward measure of a player's direct involvement in goals, based on their time on the pitch.</p>
-            <h4>5. Age Value (10%)</h4>
-            <p>A bonus awarded to younger players, representing their higher potential for future growth and value.</p>
+            <h4>3. G+A Score</h4>
+            <p>Calculates a player's raw goal and assist output, weighted heavily by their position on the pitch to reward contributions from less offensive roles.</p>
             <ul>
-                <li><strong>18–21 years:</strong> <code>+15 points</code></li>
-                <li><strong>22–25 years:</strong> <code>+10 points</code></li>
-                <li><strong>26–28 years:</strong> <code>+5 points</code></li>
-                <li><strong>29+ years:</strong> <code>+0 points</code></li>
+                <li><strong>Forwards (ST, AMs):</strong> <code>Goal = 1.1</code>, <code>Assist = 0.8</code></li>
+                <li><strong>Midfielders (MCs, ML/R, DMC):</strong> <code>Goal = 1.8</code>, <code>Assist = 1.5</code></li>
+                <li><strong>Defenders (DCs, DL/R, GK):</strong> <code>Goal = 2.7</code>, <code>Assist = 2.3</code></li>
+            </ul>
+            <h4>4. Usage Score</h4>
+            <p>Measures a player's direct goal involvement per 90 minutes and scales it up. This emphasizes players who are efficient with their time on the pitch.</p>
+            <div class="formula">UsageScore = (G+A per 90 minutes) × 3</div>
+            <h4>5. Age Bonus</h4>
+            <p>A small bonus awarded to younger players, reflecting their potential and future value.</p>
+            <ul>
+                <li><strong>18–21 years:</strong> +5 points</li>
+                <li><strong>22–25 years:</strong> +3 points</li>
+                <li><strong>26+ years:</strong> +2 points</li>
             </ul>
         </div>
     </div>
@@ -1599,20 +1604,19 @@ function updateMostImprovedTable(sortBy = 'improvement', sortOrder = 'desc') {
             let goalWeight = 0, assistWeight = 0;
             const pos = p.positions[0];
             if (['ST', 'AML', 'AMR', 'AMC'].includes(pos)) {
-                goalWeight = 1.0; assistWeight = 0.7;
+                goalWeight = 1.1; assistWeight = 0.8;
             } else if (['MC', 'ML', 'MR', 'DMC'].includes(pos)) {
-                goalWeight = 1.3; assistWeight = 1.0;
+                goalWeight = 1.8; assistWeight = 1.5;
             } else if (['DL', 'DR', 'DC', 'GK'].includes(pos)) { // GK included here
-                goalWeight = 1.6; assistWeight = 1.2;
+                goalWeight = 2.7; assistWeight = 2.3;
             }
-            const adjustedGA = (totalGoals * goalWeight) + (totalAssists * assistWeight);
-            return p.totalMinutes > 0 ? (adjustedGA / p.totalMinutes) * 90 : 0;
+            return (totalGoals * goalWeight) + (totalAssists * assistWeight);
         }
         function getAgeValue(age) {
-            if (age >= 18 && age <= 21) return 15;
-            if (age >= 22 && age <= 25) return 10;
-            if (age >= 26 && age <= 28) return 5;
-            return 0;
+            if (age >= 18 && age <= 21) return 5;
+            if (age >= 22 && age <= 25) return 3;
+            if (age >= 26) return 2;
+            return 0; // For players under 18
         }
         function calculatePowerData() {
             return players.map(p => {
@@ -1624,27 +1628,34 @@ function updateMostImprovedTable(sortBy = 'improvement', sortOrder = 'desc') {
                     }
                 }
                 const improvement = currentQuality - p.initialQuality;
-                const improvementScore = (currentQuality * 0.6) + (improvement * 0.4);
                 
+                // New Quality Score based on cubic polynomial
+                const x = currentQuality;
+                const qualityScore = (0.000175825 * x * x * x) - (0.05092985 * x * x) + (4.9956096 * x) - 156.471597;
+                // New Improvement Score based on the map
+                const improvementMap = { 1:0, 2:0, 3:0, 4:0, 5:1, 6:1, 7:2, 8:2, 9:2, 10:2, 11:3, 12:3, 13:4, 14:5, 15:5, 16:6, 17:7, 18:8, 19:8, 20:9, 21:9, 22:9, 23:10, 24:10, 25:10, 26:11, 27:13, 28:15, 29:17, 30:20 };
+                let improvementScore = 0;
+                if (improvement > 0) {
+                    improvementScore = improvementMap[Math.min(30, improvement)] || 0;
+                    if(improvement > 30) improvementScore = 20; // Cap at 20 points
+                }
                 const totalGoals = (p.leagueGoals || 0) + (p.clGoals || 0) + (p.cupGoals || 0);
                 const totalAssists = (p.leagueAssists || 0) + (p.clAssists || 0) + (p.cupAssists || 0);
                 const ga = totalGoals + totalAssists;
-                const usageScore = p.totalMinutes > 0 ? (ga * 90) / p.totalMinutes : 0;
-                const adjustedGaPer90 = getAdjustedGaScore(p);
+                const gaPer90 = p.totalMinutes > 0 ? (ga * 90) / p.totalMinutes : 0;
+                const usageScore = gaPer90 * 3;
+                const gaScore = getAdjustedGaScore(p);
                 const ageValue = getAgeValue(p.age);
                 
-                const powerScore = (0.15 * currentQuality) + 
-                                   (0.25 * improvementScore) + 
-                                   (0.30 * adjustedGaPer90) +
-                                   (0.20 * usageScore) +
-                                   (0.10 * ageValue);
+                // Final Power Score Calculation
+                const powerScore = qualityScore + improvementScore + gaScore + usageScore + ageValue;
                 
                 return {
                     player: p,
                     powerScore: powerScore,
-                    currentQuality,
+                    currentQuality: qualityScore, // This is the Quality Score component
                     improvementScore,
-                    adjustedGaPer90,
+                    adjustedGaPer90: gaScore, // Renamed for clarity in the table
                     usageScore,
                     ageValue
                 };
@@ -1684,8 +1695,8 @@ function updateMostImprovedTable(sortBy = 'improvement', sortOrder = 'desc') {
                     <td>${p.name}</td>
                     <td>${rankChangeHtml}</td>
                     <td ${maxClass('powerScore', data.powerScore)}>${data.powerScore.toFixed(2)}</td>
-                    <td ${maxClass('currentQuality', data.currentQuality)}>${data.currentQuality}%</td>
-                    <td ${maxClass('improvementScore', data.improvementScore)}>${data.improvementScore.toFixed(2)}</td>
+                    <td ${maxClass('currentQuality', data.currentQuality)}>${data.currentQuality.toFixed(2)}</td>
+                    <td ${maxClass('improvementScore', data.improvementScore)}>${data.improvementScore}</td>
                     <td ${maxClass('adjustedGaPer90', data.adjustedGaPer90)}>${data.adjustedGaPer90.toFixed(2)}</td>
                     <td ${maxClass('usageScore', data.usageScore)}>${data.usageScore.toFixed(2)}</td>
                     <td ${maxClass('ageValue', data.ageValue)}>+${data.ageValue}</td>
