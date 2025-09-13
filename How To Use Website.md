@@ -70,7 +70,8 @@ Pretty straightforward — this tab lists all players you’ve archived (sold, r
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-6. Power Ranking Tab <img width="1865" height="2022" alt="image" src="https://github.com/user-attachments/assets/b2919eaa-c894-49db-aa71-126e54a0a8ce" />
+6. Power Ranking Tab  <img width="1865" height="2022" alt="image" src="https://github.com/user-attachments/assets/542c3137-5ad9-4e80-952e-b9e29a8ad0e2" />
+
 
 This tab shows each player’s overall “power score.” It takes into account several factors (quality, improvement, goals/assists, usage, and age bonus), 
 then combines them into a single score using a formula. Basically, it’s a way to quickly see who your most valuable and impactful players are.
