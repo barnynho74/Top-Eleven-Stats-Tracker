@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" type="image/png" href="TEicon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Top Eleven Stats Tracker</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
     <style>
         :root {
         input::-webkit-outer-spin-button,
@@ -21,8 +24,8 @@
             --att-color:#ff9999;
         }
         body{font-family:Arial,sans-serif;margin:0;padding:0;background-color:#f5f5f5;}
-        .top-bar{display:flex;background-color:#333;color:#fff;padding:10px 0;}
-        .tab{flex:1;text-align:center;padding:10px;cursor:pointer;transition:background-color .3s;}
+        .top-bar{display:flex;background-color:#333;color:#fff;height: 60px;align-items:center; }
+        .tab{flex:1;text-align:center;padding:21px;cursor:pointer;transition:background-color .3s;}
         .tab:hover{background-color:#555;}
         .tab.active{background-color:#007bff;font-weight:bold;}
         .content{padding:20px;display:none;}
@@ -110,6 +113,10 @@
             background-color: #d1ecf1 !important; /* A light blue for selection */
             outline-style: dashed;
         }
+        #power-ranking-table tbody tr.selected {
+            background-color: #d1ecf1 !important;
+            font-weight: bold;
+        }
         .training-calculator{background:#fff;border:1px solid #e9e9e9;border-radius:8px;padding:15px;margin-bottom:20px;max-width:400px;box-shadow:0 2px 4px rgba(0,0,0,.05);}
         .training-calculator h3{margin-top:0;text-align:center;font-size:16px;color:#333;}
         #training-table{width:100%;border-collapse:collapse;margin-bottom:10px;}
@@ -148,6 +155,24 @@
             border: 1px solid #ccc;
             border-radius: 3px;
         }
+        .jump-to-tab {
+    color: #d9534f; /* blago crvena nijansa koja se slaže s upozorenjem */
+    font-weight: bold;
+    text-decoration: none; /* makni klasično podcrtavanje */
+    cursor: pointer;
+    transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+
+.jump-to-tab:hover {
+    text-decoration: underline;
+    color: #c9302c; /* tamnija crvena kad pređeš mišem */
+    text-shadow: 0 0 3px rgba(217, 83, 79, 0.4); /* lagani sjaj */
+}
+
+.jump-to-tab:active {
+    color: #a94442; /* još tamnija kad se klikne */
+}
+
         .note-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
         .note-tag-btn{background-color:#f0f0f0;color:#333;border:1px solid #ccc;border-radius:12px;padding:3px 10px;font-size:11px;cursor:pointer;transition:all .2s;}
         .note-tag-btn.active{font-weight:bold;}
@@ -177,6 +202,76 @@
             font-size: 16px;
             color: #333;
         }
+        #power-ranking-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: stretch;
+        }
+        #power-ranking-table-container {
+            flex: 1 1 auto;
+        }
+        #power-ranking-chart-container {
+            flex: 1 1 auto;
+            position: relative;
+            top: 0;
+            width: 100%;
+            margin-top: 20px;
+            height: 500px; /* Restrict height */
+        }
+        .chart-zoom-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            z-index: 10;
+        }
+        .chart-zoom-btn {
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 4px;
+            width: 30px;
+            height: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .chart-zoom-btn:hover {
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+        /* Tab with dropdown */
+        .tab-container {
+            position: relative;
+            flex: 1;
+        }
+        .tab-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: #444;
+            z-index: 101;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .tab-container:hover .tab-dropdown {
+            display: block;
+        }
+        .dropdown-item {
+            padding: 12px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color .3s;
+            color: #fff;
+            font-size: 14px;
+        }
+        .dropdown-item:hover {
+            background-color: #555;
+        }
 /* Add style for new archive button */
         .archive-btn{
             background-color:#28a745;
@@ -190,6 +285,7 @@
         /* Archive tab styling */
         #archived-players-content .player-card {
             opacity: 0.8;
+            
         }
         #archived-players-content .player-card .archive-btn {
             display: none;
@@ -198,6 +294,73 @@
             background-color: #d4edda;
             color: #155724;
             font-weight: bold;
+        }
+        /* Hall of Fame styles */
+        #hall-of-fame-layout {
+            display: flex;
+            gap: 20px;
+        }
+        #hof-sidebar {
+            width: 200px;
+            flex-shrink: 0;
+        }
+        #hof-sidebar h3 { margin-top: 0; }
+        .hof-category-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 8px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: left;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .hof-category-btn:hover {
+            background-color: #e9ecef;
+            border-color: #ccc;
+        }
+        .hof-category-btn.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+            font-weight: bold;
+        }
+        #hof-content {
+            flex-grow: 1;
+        }
+        #hof-content h2 { margin-top: 0; }
+        #hof-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        #hof-table th, #hof-table td {
+            border: 1px solid #ddd;
+            padding: 4px 8px;
+            text-align: left;
+        }
+        #hof-table th {
+            background-color: #f2f2f2;
+            font-size: 12px;
+        }
+        #hof-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        #hof-table .rank {
+            font-weight: bold;
+            text-align: center;
+            width: 40px;
+        }
+        #hof-table .value {
+            font-weight: bold;
+            text-align: right;
+            width: 100px;
+        }
+        #hof-table .player-name {
+            font-weight: 500;
         }
         .formula-explanation {
             margin-top: 25px;
@@ -250,16 +413,197 @@
             border-radius: 3px;
             font-size: 12px;
         }
+        /* Side Panel Calculator Styles */
+        .stats-calculator-panel {
+            position: fixed;
+            right: -320px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 320px;
+            background-color: #fff;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.2);
+            border-radius: 8px 0 0 8px;
+            transition: right 0.3s ease;
+            z-index: 999;
+            padding: 0px;
+        }
+        .stats-calculator-panel.open {
+            right: 0;
+        }
+        .calculator-toggle {
+            position: absolute;
+            left: -35px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 35px;
+            height: 80px;
+            background-color: #007bff;
+            border-radius: 8px 0 0 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            transition: background-color 0.3s;
+        }
+        .calculator-toggle:hover {
+            background-color: #0056b3;
+        }
+        .calculator-toggle .arrow {
+            transition: transform 0.3s;
+        }
+        .stats-calculator-panel.open .calculator-toggle .arrow {
+            transform: rotate(180deg);
+        }
+        .stats-calculator-content h3 {
+            margin-top: 0;
+            font-size: 16px;
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .stats-calc-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+        .stats-calc-table th {
+            background-color: #f2f2f2;
+            padding: 6px 4px;
+            font-size: 12px;
+            border: 1px solid #ddd;
+            font-weight: bold;
+        }
+        .stats-calc-table td {
+            padding: 4px;
+            border: 1px solid #ddd;
+        }
+        .stats-calc-input {
+            width: 100%;
+            padding: 4px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 12px;
+            text-align: center;
+        }
+        .stats-calc-sum {
+            font-weight: bold;
+            text-align: center;
+            background-color: #e9ecef;
+            padding: 6px;
+            font-size: 13px;
+        }
+        .calc-reset-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            width: 100%;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .calc-reset-btn:hover {
+            background-color: #c82333;
+        }
+        .archived-pr-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            overflow-y: auto;
+        }
+        .archived-pr-content {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 1200px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        .archived-pr-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #999;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+        .archived-pr-close:hover {
+            color: #333;
+        }
+        .view-pr-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 15px;
+            font-size: 13px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .view-pr-btn:hover {
+            background-color: #0056b3;
+        }
     </style>
 </head>
 <body>
+    <!-- Stats Calculator Side Panel -->
+    <div class="stats-calculator-panel" id="stats-calculator">
+        <div class="calculator-toggle" id="calc-toggle">
+            <span class="arrow">◄</span>
+        </div>
+        <div class="stats-calculator-content">
+            <h3>Quick Stats Calculator</h3>
+            <table class="stats-calc-table">
+                <thead>
+                    <tr>
+                        <th>Minutes</th>
+                        <th>Matches</th>
+                        <th>Goals</th>
+                        <th>Assists</th>
+                    </tr>
+                </thead>
+                <tbody id="calc-table-body">
+                    <!-- Rows will be generated by JavaScript -->
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td class="stats-calc-sum" id="calc-sum-minutes">0</td>
+                        <td class="stats-calc-sum" id="calc-sum-matches">0</td>
+                        <td class="stats-calc-sum" id="calc-sum-goals">0</td>
+                        <td class="stats-calc-sum" id="calc-sum-assists">0</td>
+                    </tr>
+                </tfoot>
+            </table>
+            <button class="calc-reset-btn" id="calc-reset-btn">Clear All</button>
+        </div>
+    </div>
     <div class="top-bar">
         <div class="tab active" data-tab="progress">PROGRESS</div>
         <div class="tab" data-tab="minutes">MINUTES</div>
         <div class="tab" data-tab="goals-assists">GOALS & ASSISTS</div>
         <div class="tab" data-tab="most-improved">MOST IMPROVED</div>
         <div class="tab" data-tab="power-ranking">POWER RANKING</div>
-        <div class="tab" data-tab="archived-players">ARCHIVED PLAYERS</div>
+        <div class="tab-container">
+            <div class="tab" data-tab="archived-players">ARCHIVED PLAYERS</div>
+            <div class="tab-dropdown">
+                <div class="dropdown-item" data-tab="hall-of-fame">HALL OF FAME</div>
+            </div>
+        </div>
     </div>
     <div id="progress-content" class="content active">
         <button class="add-player-btn" id="add-player-btn">+</button>
@@ -267,6 +611,13 @@
             Average quality: <span id="avg-quality">--</span>%<br>
             Squad size: <span id="squad-count">0</span> players<br>
             Average age: <span id="avg-age">--</span>
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label for="sort-option" style="margin-right: 10px; font-weight: bold;">Sort by:</label>
+            <select id="sort-option" style="padding: 5px; border-radius: 4px; border: 1px solid #ddd;">
+                <option value="position">Position</option>
+                <option value="quality">Current Quality</option>
+            </select>
         </div>
         <div class="player-list" id="player-list"></div>
         <div class="bottom-actions"><button class="age-all-btn" id="age-all-btn">+1 Year to All Players</button><button class="end-season-btn" id="end-season-btn">End Season & Archive</button></div>
@@ -281,6 +632,11 @@
             <p style="font-size: 12px; color: #666; margin-top: -5px; max-width: 350px;">
                 Download a single JSON file containing all current players, archived seasons, and settings. Uploading will overwrite all existing data.
             </p>
+            <div id="player-search-section" style="margin-top: 20px; margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 5px;">
+                <h4 style="margin-top: 0; margin-bottom: 10px; font-size: 15px;">Search Player History</h4>
+                <input type="search" id="player-search-input" placeholder="Enter player name to search archives..." style="width: 100%; padding: 8px; box-sizing: border-box; border-radius: 4px; border: 1px solid #ddd;">
+                <div id="player-search-results" style="margin-top: 15px;"></div>
+            </div>
             <div id="archive-list">
                 <p>No archived seasons yet.</p>
             </div>
@@ -359,6 +715,7 @@
                         <th data-sort="currentQuality">Current Quality <span class="sort-indicator">▼</span></th>
                         <th data-sort="minutes">Minutes <span class="sort-indicator">▼</span></th>
                         <th data-sort="matches">Matches <span class="sort-indicator">▼</span></th>
+                        <th data-sort="avgMinPerMatch">Avg Min/90 <span class="sort-indicator">▼</span></th>
                         <th data-sort="g">G <span class="sort-indicator">▼</span></th>
                         <th data-sort="a">A <span class="sort-indicator">▼</span></th>
                         <th data-sort="improvement" data-order="desc">Improvement <span class="sort-indicator desc">▼</span></th>
@@ -392,30 +749,44 @@
     <div id="power-ranking-content" class="content">
         <h2>Player Power Ranking</h2>
         <div class="minutes-form" style="margin-bottom: 20px;">
-            <button class="confirm-minutes-btn" id="update-power-ranking-btn">Update Power Ranking</button>
-            <p style="font-size: 12px; color: #666; margin-top: 8px; max-width: 600px;">
-                Click to calculate the latest Power Ranking. The '+/-' column compares the new ranks to the last time you updated.
+            <button class="confirm-minutes-btn" id="update-power-ranking-btn">UPDATE POWER RANKING</button>
+            <p style="font-size: 12px; color: #666; margin-top: 8px; max-width: 600px; color:red">
+                Before hitting the UPDATE button, do the following: <br>1. Enter all minutes played in the <a href="#" class="jump-to-tab" data-tab="minutes">MINUTES</a> tab.<br>2. Enter ALL GOALS and ASSISTS in the <a href="#" class="jump-to-tab" data-tab="goals-assists">GOALS & ASSISTS</a> tab.<br>3. Ensure player qualities are up to date in the <a href="#" class="jump-to-tab" data-tab="progress">PROGRESS</a> tab.<br>
             </p>
         </div>
-        <div class="table-container">
-            <table id="power-ranking-table">
-                <thead>
-                    <tr>
-                        <th data-sort="rank">Rank</th>
-                        <th data-sort="player">Player</th>
-                        <th>Positions</th>
-                        <th data-sort="change">+/-</th>
-                        <th data-sort="powerScore" data-order="desc">Power Score ▼</th>
-                        <th data-sort="currentQuality">Quality</th>
-                        <th data-sort="improvementScore">Improvement</th>
-                        <th data-sort="adjustedGaPer90">G+A Score</th>
-                        <th data-sort="usageScore">Usage</th>
-                        <th data-sort="ageValue">Age Bonus</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+        <div id="power-ranking-layout">
+            <div class="table-container" id="power-ranking-table-container">
+                <table id="power-ranking-table">
+                    <thead>
+                        <tr>
+                            <th data-sort="rank">Rank</th>
+                            <th data-sort="player">Player</th>
+                            <th>Positions</th>
+                            <th data-sort="change">+/-</th>
+                            <th data-sort="powerScore" data-order="desc">Power Score ▼</th>
+                            <th data-sort="currentQuality">Quality</th>
+                            <th data-sort="improvementScore">Improvement</th>
+                            <th data-sort="adjustedGaPer90">G+A Score</th>
+                            <th data-sort="usageScore">Usage</th>
+                            <th data-sort="ageValue">Age Bonus</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div id="power-ranking-chart-container" class="chart-container">
+                 <h3>Power Ranking History</h3>
+                 <div class="chart-zoom-controls">
+                    <button class="chart-zoom-btn" id="zoom-in-btn">+</button>
+                    <button class="chart-zoom-btn" id="zoom-out-btn">-</button>
+                    <button class="chart-zoom-btn" id="reset-zoom-btn" style="font-size: 14px;">⟲</button>
+                 </div>
+                 <canvas id="power-ranking-chart"></canvas>
+            </div>
         </div>
+        <p style="text-align: center; font-size: 12px; color: #666; margin-top: 10px;">
+            <br><b>Tip:</b> Hold <kbd>CTRL</kbd> and scroll to zoom, or use the +/- buttons. Click and drag to pan.
+        </p>
         <div class="formula-explanation">
             <h3>How the Power Score is Calculated</h3>
             <div class="formula">
@@ -435,9 +806,9 @@ PowerScore = (QualityScore) + (ImprovementScore) + (G+A_Score) + (UsageScore) + 
             <h4>3. G+A Score</h4>
             <p>Calculates a player's raw goal and assist output, weighted heavily by their position on the pitch to reward contributions from less offensive roles.</p>
             <ul>
-                <li><strong>Forwards (ST, AMs):</strong> <code>Goal = 1.1</code>, <code>Assist = 0.8</code></li>
-                <li><strong>Midfielders (MCs, ML/R, DMC):</strong> <code>Goal = 1.8</code>, <code>Assist = 1.5</code></li>
-                <li><strong>Defenders (DCs, DL/R, GK):</strong> <code>Goal = 2.7</code>, <code>Assist = 2.3</code></li>
+                <li><strong>Forwards (ST, AML, AMC, AMR):</strong> <code>Goal = 1.1</code>, <code>Assist = 0.8</code></li>
+                <li><strong>Midfielders (MC, ML, MR, DMC):</strong> <code>Goal = 1.8</code>, <code>Assist = 1.5</code></li>
+                <li><strong>Defenders (DC, DL, DR, GK):</strong> <code>Goal = 2.7</code>, <code>Assist = 2.3</code></li>
             </ul>
             <h4>4. Usage Score</h4>
             <p>Measures a player's direct goal involvement per 90 minutes and scales it up. This emphasizes players who are efficient with their time on the pitch.</p>
@@ -454,6 +825,29 @@ PowerScore = (QualityScore) + (ImprovementScore) + (G+A_Score) + (UsageScore) + 
     
     <div id="archived-players-content" class="content">
         <h2>Archived Players</h2>
+        <div class="minutes-form" id="archive-filters" style="margin-bottom: 20px;">
+            <h3 style="margin: 0 0 10px 0; font-size: 16px;">Filter Archived Players</h3>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+                <select id="archive-position-filter" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                    <option value="all">All Positions</option>
+                    <option value="gk">Goalkeepers</option>
+                    <option value="def">Defenders</option>
+                    <option value="mid">Midfielders</option>
+                    <option value="att">Strikers</option>
+                </select>
+                <input type="number" id="archive-age-filter-min" placeholder="Min Age" class="minutes-input">
+                <input type="number" id="archive-age-filter-max" placeholder="Max Age" class="minutes-input">
+                <input type="number" id="archive-minutes-filter-min" placeholder="Min Mins" class="minutes-input">
+                <input type="number" id="archive-minutes-filter-max" placeholder="Max Mins" class="minutes-input">
+                <input type="number" id="archive-matches-filter-min" placeholder="Min Matches" class="minutes-input">
+                <input type="number" id="archive-matches-filter-max" placeholder="Max Matches" class="minutes-input">
+                <input type="number" id="archive-goals-filter-min" placeholder="Min Goals" class="minutes-input">
+                <input type="number" id="archive-goals-filter-max" placeholder="Max Goals" class="minutes-input">
+                <input type="number" id="archive-assists-filter-min" placeholder="Min Assists" class="minutes-input">
+                <input type="number" id="archive-assists-filter-max" placeholder="Max Assists" class="minutes-input">
+                <button class="reset-minutes-btn" id="reset-archive-filters-btn">Reset Filters</button>
+            </div>
+        </div>
         <div class="table-container">
             <table id="archived-players-table">
                 <thead>
@@ -463,8 +857,10 @@ PowerScore = (QualityScore) + (ImprovementScore) + (G+A_Score) + (UsageScore) + 
                         <th data-sort="age">Age <span class="sort-indicator">▼</span></th>
                         <th data-sort="minutes">Minutes <span class="sort-indicator">▼</span></th>
                         <th data-sort="matches">Matches <span class="sort-indicator">▼</span></th>
+                        <th data-sort="avgMinPerMatch">Avg Min/Match <span class="sort-indicator">▼</span></th>
                         <th data-sort="goals">Goals <span class="sort-indicator">▼</span></th>
                         <th data-sort="assists">Assists <span class="sort-indicator">▼</span></th>
+                        <th data-sort="gaPer90">G+A/90 <span class="sort-indicator">▼</span></th>
                         <th data-sort="archiveReason">Reason</th>
                         <th>Actions</th>
                     </tr>
@@ -473,6 +869,39 @@ PowerScore = (QualityScore) + (ImprovementScore) + (G+A_Score) + (UsageScore) + 
             </table>
         </div>
     </div>
+    <div id="hall-of-fame-content" class="content">
+        <div id="hall-of-fame-layout">
+            <div id="hof-sidebar">
+                <h3>Categories</h3>
+                <button class="hof-category-btn active" data-category="matchesPlayed">Matches Played</button>
+                <button class="hof-category-btn" data-category="totalMinutes">Total Minutes</button>
+                <button class="hof-category-btn" data-category="goals">Total Goals</button>
+                <button class="hof-category-btn" data-category="assists">Total Assists</button>
+                <button class="hof-category-btn" data-category="gaPer90">G+A per 90</button>
+            </div>
+            <div id="hof-content">
+                <h2 id="hof-title">Hall of Fame: Top 10 by Matches Played</h2>
+                <div class="table-container">
+                    <table id="hof-table">
+                        <thead>
+                            <tr>
+                                <th class="rank">Rank</th>
+                                <th class="player-name">Player</th>
+                                <th>Positions</th>
+                                <th>Age</th>
+                                <th>Seasons Played</th>
+                                <th class="value" id="hof-value-header">Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Content will be generated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Player modal -->
     <div class="modal" id="player-modal">
         <div class="modal-content">
@@ -531,13 +960,43 @@ PowerScore = (QualityScore) + (ImprovementScore) + (G+A_Score) + (UsageScore) + 
             </div>
         </div>
     </div>
+    <!-- Archived Power Ranking Modal -->
+    <div class="archived-pr-modal" id="archived-pr-modal">
+        <div class="archived-pr-content">
+            <button class="archived-pr-close" id="archived-pr-close">&times;</button>
+            <h2 id="archived-pr-title">Season Power Rankings</h2>
+            <div id="archived-pr-body">
+                <!-- Content will be dynamically generated -->
+            </div>
+        </div>
+    </div>
 <script>
     document.addEventListener('DOMContentLoaded',function(){
         /* Tabs */
-        const tabs=document.querySelectorAll('.tab');
+        document.querySelectorAll('.jump-to-tab').forEach(link => {
+    link.addEventListener('click', e => {
+        e.preventDefault();
+        const tabName = link.dataset.tab;
+
+        // pronađi i klikni pravi tab
+        const targetTab = document.querySelector(`.tab[data-tab="${tabName}"]`);
+        if (targetTab) {
+            targetTab.click(); // simulira klik — aktivira tab
+        }
+    });
+});
+
+        const tabs=document.querySelectorAll('.tab, .dropdown-item');
         tabs.forEach(tab=>{tab.addEventListener('click',function(){
-            tabs.forEach(t=>t.classList.remove('active'));
-            this.classList.add('active');
+            // Handle active state for main tabs only
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            if (this.classList.contains('tab')) {
+                this.classList.add('active');
+            } else {
+                // If a dropdown item is clicked, also activate its parent tab
+                this.closest('.tab-container').querySelector('.tab').classList.add('active');
+            }
+            
             const tabName=this.dataset.tab;
             document.querySelectorAll('.content').forEach(c=>c.classList.remove('active'));
             document.getElementById(`${tabName}-content`).classList.add('active');
@@ -546,6 +1005,7 @@ PowerScore = (QualityScore) + (ImprovementScore) + (G+A_Score) + (UsageScore) + 
             else if(tabName==='most-improved')updateMostImprovedTable();
             else if(tabName==='power-ranking')updatePowerRankingTable();
             else if(tabName==='archived-players')renderArchivedPlayers();
+            else if(tabName==='hall-of-fame')renderHallOfFame();
         });});
         /* Elements */
         const addPlayerBtn=document.getElementById('add-player-btn');
@@ -573,6 +1033,9 @@ PowerScore = (QualityScore) + (ImprovementScore) + (G+A_Score) + (UsageScore) + 
         let talentChart = null;
         let archivedPlayers = [];
         let previousPowerRanking = []; // This will now be loaded from localStorage
+        let powerRankingTimeSeries = {}; // For the new chart
+        let powerRankingChart = null;
+        let selectedPowerRankingPlayers = [];
         let isEditingTrainingTimes = false;
         /* ARCHIVED PLAYERS STORAGE */
         function loadArchivedPlayersFromStorage() {
@@ -584,7 +1047,40 @@ PowerScore = (QualityScore) + (ImprovementScore) + (G+A_Score) + (UsageScore) + 
         /* Utils */
         function getPositionCategory(pos){if(pos==='GK')return'gk';if(['DL','DC','DR'].includes(pos))return'def';if(['DMC','ML','MC','MR','AMC','AML','AMR'].includes(pos))return'mid';if(['ST'].includes(pos))return'att';return'';}
         function getPositionOrder(pos){const order={GK:0,DL:1,DC:2,DR:3,DMC:4,ML:5,MC:6,MR:7,AML:8,AMC:9,AMR:10,ST:11};return order[pos]||99;}
-        function sortPlayers(){const positionOrderCat={gk:0,def:1,mid:2,att:3};players.sort((a,b)=>{const catA=getPositionCategory(a.positions[0]);const catB=getPositionCategory(b.positions[0]);if(catA!==catB)return positionOrderCat[catA]-positionOrderCat[catB];return getPositionOrder(a.positions[0])-getPositionOrder(b.positions[0]);});}
+        function sortPlayers(){
+            const sortOption = document.getElementById('sort-option')?.value || 'position';
+            if (sortOption === 'quality') {
+                // Sort by current quality (highest first)
+                players.sort((a, b) => {
+                    // Get current quality for player A
+                    let currentQualityA = a.initialQuality;
+                    for (let i = a.progress.length - 1; i >= 0; i--) {
+                        if (a.progress[i] !== null && a.progress[i] !== undefined) {
+                            currentQualityA = a.progress[i];
+                            break;
+                        }
+                    }
+                    // Get current quality for player B
+                    let currentQualityB = b.initialQuality;
+                    for (let i = b.progress.length - 1; i >= 0; i--) {
+                        if (b.progress[i] !== null && b.progress[i] !== undefined) {
+                            currentQualityB = b.progress[i];
+                            break;
+                        }
+                    }
+                    return currentQualityB - currentQualityA; // Descending order
+                });
+            } else {
+                // Default position sorting
+                const positionOrderCat={gk:0,def:1,mid:2,att:3};
+                players.sort((a,b)=>{
+                    const catA=getPositionCategory(a.positions[0]);
+                    const catB=getPositionCategory(b.positions[0]);
+                    if(catA!==catB)return positionOrderCat[catA]-positionOrderCat[catB];
+                    return getPositionOrder(a.positions[0])-getPositionOrder(b.positions[0]);
+                });
+            }
+        }
         function clearModal(){document.getElementById('player-name').value='';Array.from(document.getElementById('player-position').options).forEach(o=>o.selected=false);document.getElementById('player-age').value='';document.getElementById('player-quality').value='';document.getElementById('modal-title').textContent='Add New Player';currentPlayerId=null;}function calculateAverageQuality(){if(players.length===0){avgQualitySpan.textContent='--';document.getElementById('squad-count').textContent='0';document.getElementById('avg-age').textContent='--';return;}
             const avgQuality=(players.reduce((sum,p)=>sum+p.quality,0)/players.length).toFixed(1);
             const avgAge=(players.reduce((sum,p)=>sum+p.age,0)/players.length).toFixed(1);
@@ -613,17 +1109,30 @@ PowerScore = (QualityScore) + (ImprovementScore) + (G+A_Score) + (UsageScore) + 
             // 1. Get existing archives or create new array
             const archives = JSON.parse(localStorage.getItem('topElevenArchives') || '[]');
             
-            // 2. Create new archive object
+            // 2. Get current power ranking data
+            const currentPowerRanking = JSON.parse(localStorage.getItem('powerRankingHistory') || '[]');
+            const currentTimeSeries = JSON.parse(localStorage.getItem('powerRankingTimeSeries') || '{}');
+            
+            // 3. Create new archive object with power ranking data
             const seasonData = {
                 seasonNumber: archives.length + 1,
                 endDate: new Date().toLocaleDateString(),
-                players: JSON.parse(JSON.stringify(players)) // Deep copy of players array
+                players: JSON.parse(JSON.stringify(players)), // Deep copy of players array
+                powerRankingHistory: JSON.parse(JSON.stringify(currentPowerRanking)), // Deep copy
+                powerRankingTimeSeries: JSON.parse(JSON.stringify(currentTimeSeries)) // Deep copy
             };
-            // 3. Add new archive and save
+            
+            // 4. Add new archive and save
             archives.push(seasonData);
             localStorage.setItem('topElevenArchives', JSON.stringify(archives));
             
-            // 4. Reset players for the new season
+            // 5. Clear power ranking data for the new season
+            localStorage.removeItem('powerRankingHistory');
+            localStorage.removeItem('powerRankingTimeSeries');
+            previousPowerRanking = [];
+            powerRankingTimeSeries = {};
+            
+            // 6. Reset players for the new season
             players.forEach(p => {
                 // Accumulate lifetime stats before resetting
                 const seasonGoals = (p.leagueGoals || 0) + (p.clGoals || 0) + (p.cupGoals || 0);
@@ -647,12 +1156,15 @@ PowerScore = (QualityScore) + (ImprovementScore) + (G+A_Score) + (UsageScore) + 
                 p.cupAssists = 0;
             });
             
-            // 5. Save the reset player data
+            // 7. Save the reset player data
             savePlayersToLocalStorage();
-            // 6. Re-render everything
-            alert(`Season ${seasonData.seasonNumber} has been archived. The new season is ready to begin!`);
+            
+            // 8. Re-render everything
+            alert(`Season ${seasonData.seasonNumber} has been archived with power ranking data. The new season is ready to begin!`);
             renderPlayers();
             loadAndRenderArchives();
+            renderPowerRankingTable([]);
+            renderPowerRankingChart();
         }
         /* CRUD */
         function addPlayer(name,positionsArr,age,quality){const primary=positionsArr[0];const player={id:Date.now(),name,position:primary,positions:positionsArr,age,quality,initialQuality:quality,progress:Array(28).fill(null),minutes:Array(28).fill(0),leagueGoals:0,leagueAssists:0,clGoals:0,clAssists:0,cupGoals:0,cupAssists:0,totalMinutes:0,matchesPlayed:0,comment:'',tags:{keep:false,sell:false,slowTrainer:false,hotProspect:false}, lifetimeMinutes: 0, lifetimeMatches: 0, lifetimeGoals: 0, lifetimeAssists: 0};players.push(player);return player;}
@@ -717,6 +1229,9 @@ PowerScore = (QualityScore) + (ImprovementScore) + (G+A_Score) + (UsageScore) + 
             if (idx === -1) return;
             const playerToArchive = players[idx];
             if (!confirm(`Are you sure you want to archive ${playerToArchive.name}?`)) return;
+            // Stamp the player with the season they are being archived in
+            const archives = JSON.parse(localStorage.getItem('topElevenArchives') || '[]');
+            playerToArchive.archivedInSeason = archives.length + 1;
             // Remove from active players, push to archivedPlayers
             players.splice(idx, 1);
             playerToArchive.archiveReason = 'other'; // Set default reason on archive
@@ -733,16 +1248,48 @@ PowerScore = (QualityScore) + (ImprovementScore) + (G+A_Score) + (UsageScore) + 
         let archivedSortOrder = 'asc';
         function renderArchivedPlayers() {
             loadArchivedPlayersFromStorage();
-            archivedPlayers.forEach(p => ensureGaFields(p)); // Ensure all fields exist
-    const tbody = document.querySelector('#archived-players-table tbody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-            if (!archivedPlayers.length) {
-                tbody.innerHTML = '<tr><td colspan="9">No players have been archived yet.</td></tr>';
+            archivedPlayers.forEach(p => ensureGaFields(p));
+            // --- FILTERING LOGIC ---
+            const posFilter = document.getElementById('archive-position-filter').value;
+            const minAge = parseInt(document.getElementById('archive-age-filter-min').value) || 0;
+            const maxAge = parseInt(document.getElementById('archive-age-filter-max').value) || Infinity;
+            const minMinutes = parseInt(document.getElementById('archive-minutes-filter-min').value) || 0;
+            const maxMinutes = parseInt(document.getElementById('archive-minutes-filter-max').value) || Infinity;
+            const minMatches = parseInt(document.getElementById('archive-matches-filter-min').value) || 0;
+            const maxMatches = parseInt(document.getElementById('archive-matches-filter-max').value) || Infinity;
+            const minGoals = parseInt(document.getElementById('archive-goals-filter-min').value) || 0;
+            const maxGoals = parseInt(document.getElementById('archive-goals-filter-max').value) || Infinity;
+            const minAssists = parseInt(document.getElementById('archive-assists-filter-min').value) || 0;
+            const maxAssists = parseInt(document.getElementById('archive-assists-filter-max').value) || Infinity;
+            const filteredPlayers = archivedPlayers.filter(p => {
+                const playerCategory = getPositionCategory(p.positions[0]);
+                if (posFilter !== 'all' && playerCategory !== posFilter) return false;
+                
+                if (p.age < minAge || p.age > maxAge) return false;
+                
+                const totalMinutes = p.totalMinutes || 0;
+                const matchesPlayed = p.matchesPlayed || 0;
+                const totalGoals = (p.leagueGoals || 0) + (p.clGoals || 0) + (p.cupGoals || 0);
+                const totalAssists = (p.leagueAssists || 0) + (p.clAssists || 0) + (p.cupAssists || 0);
+                if (totalMinutes < minMinutes || totalMinutes > maxMinutes) return false;
+                if (matchesPlayed < minMatches || matchesPlayed > maxMatches) return false;
+                if (totalGoals < minGoals || totalGoals > maxGoals) return false;
+                if (totalAssists < minAssists || totalAssists > maxAssists) return false;
+                return true;
+            });
+            const tbody = document.querySelector('#archived-players-table tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            
+            if (!filteredPlayers.length) {
+                const message = archivedPlayers.length > 0 ? 'No players match the current filters.' : 'No players have been archived yet.';
+                tbody.innerHTML = `<tr><td colspan="11">${message}</td></tr>`;
                 return;
             }
-            // Prepare data for sorting
-            const data = archivedPlayers.map((p, idx) => {
+            // Prepare data for sorting from the filtered list
+            const data = filteredPlayers.map(p => {
+                // We need to find the original index to allow editing/deleting
+                const originalIndex = archivedPlayers.findIndex(original => original.id === p.id);
                 let currentQuality = p.initialQuality;
                 if (p.progress) {
                     for (let i = p.progress.length - 1; i >= 0; i--) {
@@ -755,9 +1302,12 @@ PowerScore = (QualityScore) + (ImprovementScore) + (G+A_Score) + (UsageScore) + 
                 const totalGoals = (p.leagueGoals||0)+(p.clGoals||0)+(p.cupGoals||0);
                 const totalAssists = (p.leagueAssists||0)+(p.clAssists||0)+(p.cupAssists||0);
                 const improvement = (currentQuality - p.initialQuality) || 0;
-                const improvementPercent = p.initialQuality > 0 ? ((improvement / p.initialQuality) * 100) : 0;
+                const improvementPercent = p.initialQuality > 0 ? (improvement / p.initialQuality * 100) : 0;
+                const ga = totalGoals + totalAssists;
+                const gaPer90 = (p.totalMinutes || 0) > 0 ? (ga * 90) / p.totalMinutes : 0;
+                const avgMinPerMatch = (p.matchesPlayed || 0) > 0 ? (p.totalMinutes || 0) / p.matchesPlayed : 0;
                 return {
-                    idx,
+                    idx: originalIndex, // Use original index for data manipulation
                     name: p.name,
                     positions: p.positions,
                     age: p.age,
@@ -769,6 +1319,8 @@ PowerScore = (QualityScore) + (ImprovementScore) + (G+A_Score) + (UsageScore) + 
                     matches: p.matchesPlayed || 0,
                     goals: totalGoals,
                     assists: totalAssists,
+                    gaPer90: gaPer90,
+                    avgMinPerMatch: avgMinPerMatch,
                     archiveReason: p.archiveReason || 'other',
                     player: p
                 };
@@ -776,6 +1328,10 @@ PowerScore = (QualityScore) + (ImprovementScore) + (G+A_Score) + (UsageScore) + 
             // Sort
             data.sort((a, b) => {
                 let valA = a[archivedSortBy], valB = b[archivedSortBy];
+                if (archivedSortBy === 'avgMinPerMatch') {
+                    valA = a.avgMinPerMatch;
+                    valB = b.avgMinPerMatch;
+                }
                 if (typeof valA === 'string') {
                     return archivedSortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
                 } else {
@@ -807,8 +1363,10 @@ PowerScore = (QualityScore) + (ImprovementScore) + (G+A_Score) + (UsageScore) + 
                     <td><input type="number" class="editable-stat" value="${p.age}" data-idx="${item.idx}" data-field="age"></td>
                     <td><input type="number" class="editable-stat" value="${item.minutes}" data-idx="${item.idx}" data-field="totalMinutes"></td>
                     <td><input type="number" class="editable-stat" value="${item.matches}" data-idx="${item.idx}" data-field="matchesPlayed"></td>
+                    <td>${item.avgMinPerMatch.toFixed(1)}</td>
                     <td><input type="number" class="editable-stat" value="${item.goals}" data-idx="${item.idx}" data-field="goals"></td>
                     <td><input type="number" class="editable-stat" value="${item.assists}" data-idx="${item.idx}" data-field="assists"></td>
+                    <td>${item.gaPer90.toFixed(2)}</td>
                     <td><select class="editable-stat" data-idx="${item.idx}" data-field="archiveReason">${reasonOptions}</select></td>
                     <td><button class='delete-btn' data-idx='${item.idx}'>Delete</button></td>
                 `;
@@ -1036,7 +1594,26 @@ PowerScore = (QualityScore) + (ImprovementScore) + (G+A_Score) + (UsageScore) + 
                 
                 const summary = document.createElement('summary');
                 summary.className = 'archive-summary';
-                summary.innerHTML = `<strong>Season ${archive.seasonNumber}</strong> (Ended on: ${archive.endDate}) - ${archive.players.length} players`;
+                summary.style.display = 'flex';
+                summary.style.alignItems = 'center';
+                summary.style.justifyContent = 'space-between';
+                
+                const summaryText = document.createElement('span');
+                summaryText.innerHTML = `<strong>Season ${archive.seasonNumber}</strong> (Ended on: ${archive.endDate}) - ${archive.players.length} players`;
+                summary.appendChild(summaryText);
+                
+                // Add "View Power Rankings" button if data exists
+                if (archive.powerRankingHistory && archive.powerRankingHistory.length > 0) {
+                    const viewPrBtn = document.createElement('button');
+                    viewPrBtn.className = 'view-pr-btn';
+                    viewPrBtn.textContent = 'View Power Rankings';
+                    viewPrBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        showArchivedPowerRanking(archive);
+                    });
+                    summary.appendChild(viewPrBtn);
+                }
                 
                 const contentDiv = document.createElement('div');
                 contentDiv.className = 'archive-content';
@@ -1058,7 +1635,9 @@ PowerScore = (QualityScore) + (ImprovementScore) + (G+A_Score) + (UsageScore) + 
             const dataToSave = {
                 players: JSON.parse(localStorage.getItem('topElevenPlayers') || '[]'),
                 archives: JSON.parse(localStorage.getItem('topElevenArchives') || '[]'),
-                trainingBonuses: JSON.parse(localStorage.getItem('trainingBonuses') || '{}')
+                trainingBonuses: JSON.parse(localStorage.getItem('trainingBonuses') || '{}'),
+                powerRankingHistory: JSON.parse(localStorage.getItem('powerRankingHistory') || '[]'),
+                powerRankingTimeSeries: JSON.parse(localStorage.getItem('powerRankingTimeSeries') || '{}')
             };
             
             const dataStr = JSON.stringify(dataToSave, null, 2);
@@ -1086,18 +1665,25 @@ PowerScore = (QualityScore) + (ImprovementScore) + (G+A_Score) + (UsageScore) + 
                 try {
                     const data = JSON.parse(e.target.result);
                     
-                    if (data.players && data.archives && data.trainingBonuses) {
+                    if (data.players && data.archives && data.trainingBonuses && data.powerRankingHistory && data.powerRankingTimeSeries) {
                         localStorage.setItem('topElevenPlayers', JSON.stringify(data.players));
                         localStorage.setItem('topElevenArchives', JSON.stringify(data.archives));
                         localStorage.setItem('trainingBonuses', JSON.stringify(data.trainingBonuses));
+                        localStorage.setItem('powerRankingHistory', JSON.stringify(data.powerRankingHistory));
+                        localStorage.setItem('powerRankingTimeSeries', JSON.stringify(data.powerRankingTimeSeries));
+                        
                         // Reload and re-render all data
                         loadPlayersFromLocalStorage();
-                        renderPlayers();
-                        updateMinutesTable();
-                        updateGoalsAssistsTable();
-                        updateMostImprovedTable();
                         loadAndRenderArchives();
-                        loadTrainingBonuses();
+                        loadPowerRankingData();
+                        
+                        // Trigger re-render of all tabs
+                        document.querySelectorAll('.tab').forEach(tab => {
+                            if (tab.classList.contains('active')) {
+                                tab.click(); // Re-click the active tab to force its render function
+                            }
+                        });
+                        renderPlayers(); // Render progress tab
                         
                         alert('Data successfully uploaded and restored!');
                     } else {
@@ -1396,7 +1982,8 @@ function updateMostImprovedTable(sortBy = 'improvement', sortOrder = 'desc') {
             improvement: improvement,
             improvementPercent: improvementPercent,
             totalGoals: totalGoals,
-            totalAssists: totalAssists
+            totalAssists: totalAssists,
+            avgMinPerMatch: (p.matchesPlayed || 0) > 0 ? (p.totalMinutes || 0) / p.matchesPlayed : 0
         };
     });
     // Sorting logic
@@ -1411,6 +1998,7 @@ function updateMostImprovedTable(sortBy = 'improvement', sortOrder = 'desc') {
             case 'matches': valA = a.player.matchesPlayed || 0; valB = b.player.matchesPlayed || 0; break;
             case 'g': valA = a.totalGoals; valB = b.totalGoals; break;
             case 'a': valA = a.totalAssists; valB = b.totalAssists; break;
+            case 'avgMinPerMatch': valA = a.avgMinPerMatch; valB = b.avgMinPerMatch; break;
             case 'improvementPercent': valA = a.improvementPercent; valB = b.improvementPercent; break;
             default: // improvement
                 valA = a.improvement; valB = b.improvement; break;
@@ -1437,6 +2025,7 @@ function updateMostImprovedTable(sortBy = 'improvement', sortOrder = 'desc') {
             <td>${item.currentQuality}%</td>
             <td>${p.totalMinutes || 0}</td>
             <td>${p.matchesPlayed || 0}</td>
+            <td>${item.avgMinPerMatch.toFixed(1)}</td>
             <td>${item.totalGoals}</td>
             <td>${item.totalAssists}</td>
             <td style='${improvementClass}'>${improvementSign}${item.improvement}%</td>
@@ -1605,6 +2194,20 @@ function updateMostImprovedTable(sortBy = 'improvement', sortOrder = 'desc') {
                 }
             });
 }
+        function getCurrentDay() {
+            let lastDay = 0;
+            players.forEach(p => {
+                if (p.progress) {
+                    for (let i = p.progress.length - 1; i >= 0; i--) {
+                        if (p.progress[i] !== null && p.progress[i] !== undefined) {
+                            lastDay = Math.max(lastDay, i);
+                        }
+                    }
+                }
+            });
+            return lastDay + 1; // Return day number (1-28), not index
+        }
+        
         function getAdjustedGaScore(p) {
             const totalGoals = (p.leagueGoals || 0) + (p.clGoals || 0) + (p.cupGoals || 0);
             const totalAssists = (p.leagueAssists || 0) + (p.clAssists || 0) + (p.cupAssists || 0);
@@ -1671,9 +2274,7 @@ function updateMostImprovedTable(sortBy = 'improvement', sortOrder = 'desc') {
         function renderPowerRankingTable(powerData) {
             const tbody = document.querySelector('#power-ranking-table tbody');
             tbody.innerHTML = '';
-            
-            // This is the "previous" ranking from the last update
-            const oldRanks = new Map(previousPowerRanking.map((p, i) => [p.player.id, i + 1]));
+            const previousDataMap = new Map(previousPowerRanking.map(p => [p.player.id, p]));
             const maxScores = {
                 powerScore: Math.max(0, ...powerData.map(d => d.powerScore)),
                 currentQuality: Math.max(0, ...powerData.map(d => d.currentQuality)),
@@ -1685,28 +2286,45 @@ function updateMostImprovedTable(sortBy = 'improvement', sortOrder = 'desc') {
             powerData.forEach((data, index) => {
                 const p = data.player;
                 const row = document.createElement('tr');
+                row.dataset.playerId = p.id;
+                if (selectedPowerRankingPlayers.includes(p.id)) {
+                    row.classList.add('selected');
+                }
                 const maxClass = (field, value) => (value > 0 && value === maxScores[field]) ? 'class="top-score"' : '';
                 
+                // Rank change
                 const newRank = index + 1;
-                const oldRank = oldRanks.get(p.id);
-                let rankChangeHtml = '<span style="color: #999;">–</span>'; // Default
+                const oldData = previousDataMap.get(p.id);
+                const oldRank = oldData ? previousPowerRanking.findIndex(pr => pr.player.id === p.id) + 1 : null;
+                let rankChangeHtml = '<span style="color: #999;">–</span>';
                 if (oldRank && oldRank !== newRank) {
-                    if (newRank < oldRank) {
-                        rankChangeHtml = `<span style="color: green;">▲ ${oldRank - newRank}</span>`; // Up
-                    } else {
-                        rankChangeHtml = `<span style="color: red;">▼ ${newRank - oldRank}</span>`; // Down
-                    }
+                    rankChangeHtml = newRank < oldRank
+                        ? `<span style="color: green;">▲ ${oldRank - newRank}</span>`
+                        : `<span style="color: red;">▼ ${newRank - oldRank}</span>`;
                 }
+                // Function to create score change HTML
+                const getChangeHtml = (field) => {
+                    if (!oldData) return '';
+                    const diff = data[field] - oldData[field];
+                    if (Math.abs(diff) < 0.01) return ''; // Ignore tiny changes
+                    const color = diff > 0 ? 'green' : 'red';
+                    const sign = diff > 0 ? '+' : '';
+                    return ` <span style="font-size: 11px; color: ${color};">(${sign}${diff.toFixed(2)})</span>`;
+                };
+                const powerScoreChange = getChangeHtml('powerScore');
+                const gaScoreChange = getChangeHtml('adjustedGaPer90');
+                const usageScoreChange = getChangeHtml('usageScore');
+                
                 row.innerHTML = `
                     <td>${newRank}</td>
                     <td>${p.name}</td>
                     <td class='${getPositionCategory(p.positions[0])}'>${p.positions.join('/')}</td>
                     <td>${rankChangeHtml}</td>
-                    <td ${maxClass('powerScore', data.powerScore)}>${data.powerScore.toFixed(2)}</td>
+                    <td ${maxClass('powerScore', data.powerScore)}>${data.powerScore.toFixed(2)}${powerScoreChange}</td>
                     <td ${maxClass('currentQuality', data.currentQuality)}>${data.currentQuality.toFixed(2)}</td>
                     <td ${maxClass('improvementScore', data.improvementScore)}>${data.improvementScore}</td>
-                    <td ${maxClass('adjustedGaPer90', data.adjustedGaPer90)}>${data.adjustedGaPer90.toFixed(2)}</td>
-                    <td ${maxClass('usageScore', data.usageScore)}>${data.usageScore.toFixed(2)}</td>
+                    <td ${maxClass('adjustedGaPer90', data.adjustedGaPer90)}>${data.adjustedGaPer90.toFixed(2)}${gaScoreChange}</td>
+                    <td ${maxClass('usageScore', data.usageScore)}>${data.usageScore.toFixed(2)}${usageScoreChange}</td>
                     <td ${maxClass('ageValue', data.ageValue)}>+${data.ageValue}</td>
                 `;
                 tbody.appendChild(row);
@@ -1714,16 +2332,121 @@ function updateMostImprovedTable(sortBy = 'improvement', sortOrder = 'desc') {
         }
         
         function updateAndSavePowerRanking() {
-            // Recalculate and render the table
+            const currentDay = getCurrentDay();
             const newPowerData = calculatePowerData();
+            
+            // Update time series data
+            powerRankingTimeSeries[currentDay] = newPowerData.map((data) => ({
+                playerId: data.player.id,
+                powerScore: data.powerScore
+            }));
+            localStorage.setItem('powerRankingTimeSeries', JSON.stringify(powerRankingTimeSeries));
+            
+            // Render table and chart
             renderPowerRankingTable(newPowerData);
+            renderPowerRankingChart();
+            
             // Save the *new* ranking as the "previous" for the next update
             previousPowerRanking = [...newPowerData];
             localStorage.setItem('powerRankingHistory', JSON.stringify(previousPowerRanking));
             
-            alert('Power Ranking updated!');
+            alert(`Power Ranking updated for Day ${currentDay}!`);
         }
         
+        function renderPowerRankingChart() {
+            const ctx = document.getElementById('power-ranking-chart').getContext('2d');
+            if (powerRankingChart) {
+                powerRankingChart.destroy();
+            }
+            const days = Object.keys(powerRankingTimeSeries).map(Number).sort((a, b) => a - b);
+            if (days.length === 0) {
+                 ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); // Clear if no data
+                 return;
+            }
+            // Consistent colors for each player
+            const playerColors = {};
+            players.forEach((p, i) => {
+                const hue = (i * 137.508) % 360; // Golden angle for distinct colors
+                playerColors[p.id] = `hsl(${hue}, 70%, 50%)`;
+            });
+            const datasets = players.map(player => {
+                const data = days.map(day => {
+                    const dayData = powerRankingTimeSeries[day];
+                    const playerData = dayData.find(d => d.playerId === player.id);
+                    return playerData ? { x: day, y: playerData.powerScore } : null;
+                }).filter(Boolean); // Remove nulls where player wasn't ranked
+                const isSelected = selectedPowerRankingPlayers.includes(player.id);
+                const isAnySelected = selectedPowerRankingPlayers.length > 0;
+                return {
+                    label: player.name,
+                    data: data,
+                    borderColor: playerColors[player.id] || '#ccc',
+                    backgroundColor: playerColors[player.id] || '#ccc',
+                    fill: false,
+                    tension: 0.1,
+                    borderWidth: isSelected ? 4 : (isAnySelected ? 1 : 2),
+                    pointRadius: isSelected ? 5 : (isAnySelected ? 2 : 3),
+                    pointHoverRadius: 7,
+                    borderColor: isAnySelected && !isSelected ? 'rgba(204, 204, 204, 0.5)' : (playerColors[player.id] || '#ccc'),
+                };
+            }).filter(d => d.data.length > 0); // Only include players with data
+            powerRankingChart = new Chart(ctx, {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            title: { display: true, text: 'Power Score Ranking' },
+                            reverse: false,
+                            beginAtZero: true
+                        },
+                        x: {
+                            type: 'linear',
+                            title: { display: true, text: 'Day of Season' },
+                            min: 1,
+                            max: 28,
+                            ticks: { stepSize: 1 }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                title: (tooltipItems) => `Day ${tooltipItems[0].raw.x}`,
+                                label: (context) => `${context.dataset.label}: Score ${context.raw.y.toFixed(2)}`
+                            }
+                        },
+                         legend: {
+                            display: false // Hide legend to avoid clutter; tooltips are better
+                        },
+                        zoom: {
+                            pan: {
+                                enabled: true,
+                                mode: 'xy',
+                            },
+                            zoom: {
+                                wheel: {
+                                    enabled: true,
+                                    modifierKey: 'ctrl',
+                                },
+                                pinch: {
+                                    enabled: true
+                                },
+                                mode: 'xy',
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function loadPowerRankingData() {
+            previousPowerRanking = JSON.parse(localStorage.getItem('powerRankingHistory') || '[]');
+            powerRankingTimeSeries = JSON.parse(localStorage.getItem('powerRankingTimeSeries') || '{}');
+            renderPowerRankingTable(previousPowerRanking);
+            renderPowerRankingChart();
+        }
 /* Events */
         addPlayerBtn.addEventListener('click',()=>{clearModal();playerModal.style.display='flex';});
         cancelBtn.addEventListener('click',()=>{playerModal.style.display='none';clearModal();});
@@ -1766,6 +2489,30 @@ const header = e.target.closest('th');
             }
         });
         // Removed the event listener for sorting the power ranking table by clicking headers.
+        document.getElementById('power-ranking-table').addEventListener('click', function(e) {
+            const row = e.target.closest('tr');
+            if (!row || !row.dataset.playerId) return;
+            const playerId = parseInt(row.dataset.playerId);
+            const isCtrlPressed = e.ctrlKey || e.metaKey;
+            if (!isCtrlPressed) {
+                // Single selection logic
+                if (selectedPowerRankingPlayers.length === 1 && selectedPowerRankingPlayers[0] === playerId) {
+                    selectedPowerRankingPlayers = []; // Deselect if clicking the only selected player
+                } else {
+                    selectedPowerRankingPlayers = [playerId]; // Select only this player
+                }
+            } else {
+                // Multi-selection logic (CTRL/CMD key held)
+                const index = selectedPowerRankingPlayers.indexOf(playerId);
+                if (index > -1) {
+                    selectedPowerRankingPlayers.splice(index, 1); // Deselect
+                } else {
+                    selectedPowerRankingPlayers.push(playerId); // Select
+                }
+            }
+            renderPowerRankingTable(previousPowerRanking);
+            renderPowerRankingChart();
+        });
         document.getElementById('minutes-table').addEventListener('click',function(e){
             if(e.target.classList.contains('reset-player-minutes-btn')){
                 const playerId=parseInt(e.target.dataset.playerId);
@@ -1784,13 +2531,23 @@ const header = e.target.closest('th');
         loadPlayersFromLocalStorage();
         loadArchivedPlayersFromStorage();
         // Load and render previous power ranking from storage on startup
-        previousPowerRanking = JSON.parse(localStorage.getItem('powerRankingHistory') || '[]');
-        renderPowerRankingTable(previousPowerRanking);
+        loadPowerRankingData();
         
         renderPlayers();
         setupTrainingCalculator();
+        setupPlayerSearch();
         loadAndRenderArchives();
         // No longer adding sort indicators to power ranking table headers
+        // Chart zoom buttons
+        document.getElementById('zoom-in-btn').addEventListener('click', () => {
+            if (powerRankingChart) powerRankingChart.zoom(1.1);
+        });
+        document.getElementById('zoom-out-btn').addEventListener('click', () => {
+            if (powerRankingChart) powerRankingChart.zoom(0.9);
+        });
+        document.getElementById('reset-zoom-btn').addEventListener('click', () => {
+            if (powerRankingChart) powerRankingChart.resetZoom();
+        });
         
         const archivedTable = document.getElementById('archived-players-table');
         if (archivedTable) {
@@ -1811,7 +2568,402 @@ const header = e.target.closest('th');
             });
         }
         renderArchivedPlayers();
+        // --- EVENT LISTENERS FOR NEW FILTERS ---
+        document.getElementById('archive-filters').addEventListener('input', () => {
+            renderArchivedPlayers();
+        });
+        document.getElementById('reset-archive-filters-btn').addEventListener('click', () => {
+            document.getElementById('archive-position-filter').value = 'all';
+            document.getElementById('archive-age-filter-min').value = '';
+            document.getElementById('archive-age-filter-max').value = '';
+            document.getElementById('archive-minutes-filter-min').value = '';
+            document.getElementById('archive-minutes-filter-max').value = '';
+            document.getElementById('archive-matches-filter-min').value = '';
+            document.getElementById('archive-matches-filter-max').value = '';
+            document.getElementById('archive-goals-filter-min').value = '';
+            document.getElementById('archive-goals-filter-max').value = '';
+            document.getElementById('archive-assists-filter-min').value = '';
+            document.getElementById('archive-assists-filter-max').value = '';
+            renderArchivedPlayers();
+        });
+        document.getElementById('hof-sidebar').addEventListener('click', function(e) {
+            if (e.target.classList.contains('hof-category-btn')) {
+                const category = e.target.dataset.category;
+                renderHallOfFame(category);
+            }
+        });
+        // Sort option change listener
+        document.getElementById('sort-option').addEventListener('change', function() {
+            renderPlayers();
+        });
+        
+        // Archived Power Ranking Modal close button
+        document.getElementById('archived-pr-close').addEventListener('click', () => {
+            document.getElementById('archived-pr-modal').style.display = 'none';
+        });
+        
+        // Close modal when clicking outside
+        document.getElementById('archived-pr-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'archived-pr-modal') {
+                document.getElementById('archived-pr-modal').style.display = 'none';
+            }
+        });
+        
+        // Stats Calculator functionality
+        function initStatsCalculator() {
+            const calcPanel = document.getElementById('stats-calculator');
+            const calcToggle = document.getElementById('calc-toggle');
+            const calcTableBody = document.getElementById('calc-table-body');
+            const calcResetBtn = document.getElementById('calc-reset-btn');
+            
+            // Generate 8 rows for input
+            for (let i = 0; i < 8; i++) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input type="number" class="stats-calc-input calc-minutes" placeholder="0"></td>
+                    <td><input type="number" class="stats-calc-input calc-matches" placeholder="0"></td>
+                    <td><input type="number" class="stats-calc-input calc-goals" placeholder="0"></td>
+                    <td><input type="number" class="stats-calc-input calc-assists" placeholder="0"></td>
+                `;
+                calcTableBody.appendChild(row);
+            }
+            
+            // Toggle panel open/close
+            calcToggle.addEventListener('click', () => {
+                calcPanel.classList.toggle('open');
+            });
+            
+            // Calculate sums on input
+            calcTableBody.addEventListener('input', updateCalcSums);
+            
+            function updateCalcSums() {
+                const minutesInputs = document.querySelectorAll('.calc-minutes');
+                const matchesInputs = document.querySelectorAll('.calc-matches');
+                const goalsInputs = document.querySelectorAll('.calc-goals');
+                const assistsInputs = document.querySelectorAll('.calc-assists');
+                
+                let sumMinutes = 0, sumMatches = 0, sumGoals = 0, sumAssists = 0;
+                
+                minutesInputs.forEach(input => sumMinutes += parseInt(input.value) || 0);
+                matchesInputs.forEach(input => sumMatches += parseInt(input.value) || 0);
+                goalsInputs.forEach(input => sumGoals += parseInt(input.value) || 0);
+                assistsInputs.forEach(input => sumAssists += parseInt(input.value) || 0);
+                
+                document.getElementById('calc-sum-minutes').textContent = sumMinutes;
+                document.getElementById('calc-sum-matches').textContent = sumMatches;
+                document.getElementById('calc-sum-goals').textContent = sumGoals;
+                document.getElementById('calc-sum-assists').textContent = sumAssists;
+            }
+            
+            // Reset all inputs
+            calcResetBtn.addEventListener('click', () => {
+                document.querySelectorAll('.stats-calc-input').forEach(input => input.value = '');
+                updateCalcSums();
+            });
+        }
+        
+        initStatsCalculator();
     });
+    function formatSeasonString(seasonSet) {
+        if (!seasonSet || seasonSet.size === 0) return 'N/A';
+        const seasons = Array.from(seasonSet).sort((a, b) => a - b);
+        if (seasons.length === 0) return 'N/A';
+        const ranges = [];
+        let start = seasons[0];
+        let end = seasons[0];
+        for (let i = 1; i < seasons.length; i++) {
+            if (seasons[i] === end + 1) {
+                end = seasons[i];
+            } else {
+                ranges.push(start === end ? `${start}` : `${start}-${end}`);
+                start = seasons[i];
+                end = seasons[i];
+            }
+        }
+        ranges.push(start === end ? `${start}` : `${start}-${end}`);
+        return ranges.join(', ');
+    }
+    function renderPlayerSearchResults(results, container) {
+        container.innerHTML = '';
+        if (results.length === 0) {
+            container.innerHTML = '<p style="font-size: 13px; color: #666;">No matching players found in archives.</p>';
+            return;
+        }
+        results.forEach(data => {
+            const p = data.player;
+            const card = document.createElement('div');
+            card.style.cssText = 'background-color: #fff; border: 1px solid #e9e9e9; border-radius: 5px; padding: 15px; margin-bottom: 10px; font-size: 13px;';
+            const seasonsString = formatSeasonString(data.seasons);
+            card.innerHTML = `
+                <h5 style="margin: 0 0 10px 0; font-size: 14px;">
+                    ${p.name} (${p.age}, ${p.positions.join('/')})
+                </h5>
+                <p style="margin: 5px 0;"><strong>Seasons Archived:</strong> ${seasonsString}</p>
+                <p style="margin: 5px 0;"><strong>Career Totals:</strong></p>
+                <ul style="margin: 0; padding-left: 20px; list-style-type: disc;">
+                    <li><strong>Minutes:</strong> ${data.totalMinutes}</li>
+                    <li><strong>Matches:</strong> ${data.totalMatches}</li>
+                    <li><strong>Goals:</strong> ${data.totalGoals}</li>
+                    <li><strong>Assists:</strong> ${data.totalAssists}</li>
+                </ul>
+            `;
+            container.appendChild(card);
+        });
+    }
+    function setupPlayerSearch() {
+        const searchInput = document.getElementById('player-search-input');
+        const searchResults = document.getElementById('player-search-results');
+        searchInput.addEventListener('input', () => {
+            const query = searchInput.value.trim().toLowerCase();
+            if (query.length < 2) {
+                searchResults.innerHTML = '';
+                return;
+            }
+            const seasonArchives = JSON.parse(localStorage.getItem('topElevenArchives') || '[]');
+            const individualArchives = JSON.parse(localStorage.getItem('archivedPlayers') || '[]');
+            const playerHistory = new Map();
+            seasonArchives.forEach(season => {
+                season.players.forEach(p => {
+                    if (p.name.toLowerCase().includes(query)) {
+                        if (!playerHistory.has(p.name)) {
+                            playerHistory.set(p.name, { player: p, seasons: new Set(), totalMinutes: 0, totalMatches: 0, totalGoals: 0, totalAssists: 0 });
+                        }
+                        const history = playerHistory.get(p.name);
+                        history.seasons.add(season.seasonNumber);
+                        history.totalMinutes += p.totalMinutes || 0;
+                        history.totalMatches += p.matchesPlayed || 0;
+                        history.totalGoals += (p.leagueGoals || 0) + (p.clGoals || 0) + (p.cupGoals || 0);
+                        history.totalAssists += (p.leagueAssists || 0) + (p.clAssists || 0) + (p.cupAssists || 0);
+                    }
+                });
+            });
+            individualArchives.forEach(p => {
+                if (p.name.toLowerCase().includes(query) && !playerHistory.has(p.name)) {
+                    playerHistory.set(p.name, { player: p, seasons: new Set(), totalMinutes: p.totalMinutes || 0, totalMatches: p.matchesPlayed || 0, totalGoals: (p.leagueGoals || 0) + (p.clGoals || 0) + (p.cupGoals || 0), totalAssists: (p.leagueAssists || 0) + (p.clAssists || 0) + (p.cupAssists || 0) });
+                }
+            });
+            renderPlayerSearchResults(Array.from(playerHistory.values()), searchResults);
+        });
+    }
+    function renderHallOfFame(category = 'matchesPlayed') {
+        document.querySelectorAll('.hof-category-btn').forEach(btn => btn.classList.remove('active'));
+        const activeBtn = document.querySelector(`.hof-category-btn[data-category="${category}"]`);
+        const categoryNames = { 'matchesPlayed': 'Matches Played', 'totalMinutes': 'Total Minutes', 'goals': 'Total Goals', 'assists': 'Total Assists', 'gaPer90': 'G+A per 90' };
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+            const categoryName = categoryNames[category] || activeBtn.textContent;
+            document.getElementById('hof-title').textContent = `Hall of Fame: Top 10 by ${categoryName}`;
+            document.getElementById('hof-value-header').textContent = categoryName;
+        }
+        const tbody = document.querySelector('#hof-table tbody');
+        tbody.innerHTML = '';
+        const seasonArchives = JSON.parse(localStorage.getItem('topElevenArchives') || '[]');
+        const manuallyArchivedPlayers = JSON.parse(localStorage.getItem('archivedPlayers') || '[]');
+        if (manuallyArchivedPlayers.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6">No archived players found to build the Hall of Fame.</td></tr>';
+            return;
+        }
+        // Use stats directly from archived player records, respecting any manual edits.
+        const aggregatedPlayers = manuallyArchivedPlayers.map(p => {
+            const careerMatches = p.matchesPlayed || 0;
+            const careerMinutes = p.totalMinutes || 0;
+            const careerGoals = (p.leagueGoals || 0) + (p.clGoals || 0) + (p.cupGoals || 0);
+            const careerAssists = (p.leagueAssists || 0) + (p.clAssists || 0) + (p.cupAssists || 0);
+            const ga = careerGoals + careerAssists;
+            const gaPer90 = careerMinutes > 0 ? (ga * 90) / careerMinutes : 0;
+            // Find all seasons this player participated in.
+            const seasons = new Set();
+            // Add the season they were manually archived in (for new data)
+            if (p.archivedInSeason) {
+                seasons.add(p.archivedInSeason);
+            }
+            // Add seasons from full season-end archives
+            seasonArchives.forEach(season => {
+                if (season.players.some(seasonPlayer => seasonPlayer.name === p.name)) {
+                    seasons.add(season.seasonNumber);
+                }
+            });
+            return {
+                player: p,
+                matchesPlayed: careerMatches,
+                totalMinutes: careerMinutes,
+                goals: careerGoals,
+                assists: careerAssists,
+                gaPer90: gaPer90,
+                seasons: seasons
+            };
+        });
+        aggregatedPlayers.sort((a, b) => b[category] - a[category]);
+        const top10 = aggregatedPlayers.slice(0, 10);
+        if (top10.length === 0) {
+             tbody.innerHTML = '<tr><td colspan="6">No archived players found to build the Hall of Fame.</td></tr>';
+             return;
+        }
+        top10.forEach((item, index) => {
+            const row = document.createElement('tr');
+            const p = item.player;
+            let value;
+            switch (category) {
+                case 'gaPer90': value = item[category].toFixed(2); break;
+                default: value = item[category];
+            }
+            row.innerHTML = `
+                <td class="rank">${index + 1}</td>
+                <td>${p.name}</td>
+                <td>${p.positions.join('/')}</td>
+                <td>${p.age}</td>
+                <td>${formatSeasonString(item.seasons)}</td>
+                <td class="value">${value}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+    
+    function showArchivedPowerRanking(archive) {
+        const modal = document.getElementById('archived-pr-modal');
+        const title = document.getElementById('archived-pr-title');
+        const body = document.getElementById('archived-pr-body');
+        
+        title.textContent = `Season ${archive.seasonNumber} Power Rankings (Ended: ${archive.endDate})`;
+        body.innerHTML = '';
+        
+        // Check if power ranking data exists
+        if (!archive.powerRankingHistory || archive.powerRankingHistory.length === 0) {
+            body.innerHTML = '<p style="color: #666;">No power ranking data available for this season.</p>';
+            modal.style.display = 'flex';
+            return;
+        }
+        
+        // Create table container
+        const tableContainer = document.createElement('div');
+        tableContainer.className = 'table-container';
+        tableContainer.style.marginBottom = '30px';
+        
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        table.innerHTML = `
+            <thead>
+                <tr>
+                    <th style="border: 1px solid #ddd; padding: 8px;">Rank</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">Player</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">Positions</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">Power Score</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">Quality</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">Improvement</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">G+A Score</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">Usage</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">Age Bonus</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        `;
+        
+        const tbody = table.querySelector('tbody');
+        archive.powerRankingHistory.forEach((data, index) => {
+            const p = data.player;
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td style="border: 1px solid #ddd; padding: 8px;">${index + 1}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">${p.name}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;" class="${getPositionCategory(p.positions[0])}">${p.positions.join('/')}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">${data.powerScore.toFixed(2)}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">${data.currentQuality.toFixed(2)}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">${data.improvementScore}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">${data.adjustedGaPer90.toFixed(2)}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">${data.usageScore.toFixed(2)}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">+${data.ageValue}</td>
+            `;
+            tbody.appendChild(row);
+        });
+        
+        tableContainer.appendChild(table);
+        body.appendChild(tableContainer);
+        
+        // Create chart if time series data exists
+        if (archive.powerRankingTimeSeries && Object.keys(archive.powerRankingTimeSeries).length > 0) {
+            const chartContainer = document.createElement('div');
+            chartContainer.className = 'chart-container';
+            chartContainer.style.height = '400px';
+            chartContainer.innerHTML = '<h3>Power Ranking History</h3><canvas id="archived-pr-chart"></canvas>';
+            body.appendChild(chartContainer);
+            
+            // Render chart after modal is visible
+            setTimeout(() => {
+                renderArchivedPowerRankingChart(archive.powerRankingTimeSeries, archive.players);
+            }, 100);
+        }
+        
+        modal.style.display = 'flex';
+    }
+    
+    function renderArchivedPowerRankingChart(timeSeries, archivedPlayers) {
+        const ctx = document.getElementById('archived-pr-chart');
+        if (!ctx) return;
+        
+        const days = Object.keys(timeSeries).map(Number).sort((a, b) => a - b);
+        if (days.length === 0) return;
+        
+        // Generate consistent colors for players
+        const playerColors = {};
+        archivedPlayers.forEach((p, i) => {
+            const hue = (i * 137.508) % 360;
+            playerColors[p.id] = `hsl(${hue}, 70%, 50%)`;
+        });
+        
+        const datasets = archivedPlayers.map(player => {
+            const data = days.map(day => {
+                const dayData = timeSeries[day];
+                const playerData = dayData.find(d => d.playerId === player.id);
+                return playerData ? { x: day, y: playerData.powerScore } : null;
+            }).filter(Boolean);
+            
+            return {
+                label: player.name,
+                data: data,
+                borderColor: playerColors[player.id] || '#ccc',
+                backgroundColor: playerColors[player.id] || '#ccc',
+                fill: false,
+                tension: 0.1,
+                borderWidth: 2,
+                pointRadius: 3,
+                pointHoverRadius: 6
+            };
+        }).filter(d => d.data.length > 0);
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: { datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        title: { display: true, text: 'Power Score' },
+                        beginAtZero: true
+                    },
+                    x: {
+                        type: 'linear',
+                        title: { display: true, text: 'Day of Season' },
+                        min: 1,
+                        max: 28,
+                        ticks: { stepSize: 1 }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            title: (tooltipItems) => `Day ${tooltipItems[0].raw.x}`,
+                            label: (context) => `${context.dataset.label}: Score ${context.raw.y.toFixed(2)}`
+                        }
+                    },
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
 </script>
 </body>
 </html>
