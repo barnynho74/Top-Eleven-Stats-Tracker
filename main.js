@@ -688,7 +688,22 @@ document.addEventListener('DOMContentLoaded', () => {
             for(let i=startDay;i<=endDay;i++){
                 const avgCell=document.createElement('div');
                 avgCell.className='day-average';
-                avgCell.textContent=dayAverages[i];
+                
+                const currentVal = dayAverages[i];
+                const prevVal = i > 0 ? dayAverages[i-1] : '-';
+                
+                let html = `<div>${currentVal}</div>`;
+                
+                if (currentVal !== '-' && prevVal !== '-') {
+                    const diff = parseFloat(currentVal) - parseFloat(prevVal);
+                    if (Math.abs(diff) > 0.001) {
+                        const color = diff > 0 ? 'green' : 'red';
+                        const sign = diff > 0 ? '+' : '';
+                        html += `<div style="color: ${color}; font-size: 9px;">${sign}${diff.toFixed(2)}</div>`;
+                    }
+                }
+                
+                avgCell.innerHTML = html;
                 avgValues.appendChild(avgCell);
             }
             avgWeekHeader.appendChild(avgValues);
@@ -1851,24 +1866,49 @@ document.addEventListener('DOMContentLoaded', () => {
         tbody.innerHTML = '';
         
         const archivedPlayersList = JSON.parse(localStorage.getItem('archivedPlayers') || '[]');
+        const seasonArchives = JSON.parse(localStorage.getItem('topElevenArchives') || '[]');
         
         const allPlayers = [];
         
-        // Add active players
+        // Add active players with career stats (sum from all archived seasons + current season)
         players.forEach(p => {
-            const totalGoals = (p.leagueGoals || 0) + (p.clGoals || 0) + (p.cupGoals || 0);
-            const totalAssists = (p.leagueAssists || 0) + (p.clAssists || 0) + (p.cupAssists || 0);
-            const totalMinutes = p.totalMinutes || 0;
-            const matchesPlayed = p.matchesPlayed || 0;
-            const ga = totalGoals + totalAssists;
-            const gaPer90 = totalMinutes > 0 ? (ga * 90) / totalMinutes : 0;
+            // Current season stats
+            const currentSeasonGoals = (p.leagueGoals || 0) + (p.clGoals || 0) + (p.cupGoals || 0);
+            const currentSeasonAssists = (p.leagueAssists || 0) + (p.clAssists || 0) + (p.cupAssists || 0);
+            const currentSeasonMinutes = p.totalMinutes || 0;
+            const currentSeasonMatches = p.matchesPlayed || 0;
+            
+            // Find this player in all archived seasons and sum their stats
+            let archivedGoals = 0;
+            let archivedAssists = 0;
+            let archivedMinutes = 0;
+            let archivedMatches = 0;
+            
+            seasonArchives.forEach(season => {
+                const archivedPlayer = season.players.find(ap => ap.name === p.name);
+                if (archivedPlayer) {
+                    archivedGoals += (archivedPlayer.leagueGoals || 0) + (archivedPlayer.clGoals || 0) + (archivedPlayer.cupGoals || 0);
+                    archivedAssists += (archivedPlayer.leagueAssists || 0) + (archivedPlayer.clAssists || 0) + (archivedPlayer.cupAssists || 0);
+                    archivedMinutes += archivedPlayer.totalMinutes || 0;
+                    archivedMatches += archivedPlayer.matchesPlayed || 0;
+                }
+            });
+            
+            // Career totals = archived seasons stats + current season stats
+            const careerGoals = archivedGoals + currentSeasonGoals;
+            const careerAssists = archivedAssists + currentSeasonAssists;
+            const careerMinutes = archivedMinutes + currentSeasonMinutes;
+            const careerMatches = archivedMatches + currentSeasonMatches;
+            
+            const ga = careerGoals + careerAssists;
+            const gaPer90 = careerMinutes > 0 ? (ga * 90) / careerMinutes : 0;
             
             allPlayers.push({
                 player: p,
-                matchesPlayed: matchesPlayed,
-                totalMinutes: totalMinutes,
-                goals: totalGoals,
-                assists: totalAssists,
+                matchesPlayed: careerMatches,
+                totalMinutes: careerMinutes,
+                goals: careerGoals,
+                assists: careerAssists,
                 gaPer90: gaPer90,
                 isActive: true
             });

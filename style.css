@@ -33,7 +33,7 @@ body{font-family:Arial,sans-serif;margin:0;padding:0;background-color:#f5f5f5;}
 .day-cell{width:25px;text-align:center;font-size:11px;border:1px solid #ddd;padding:1px;}
 .player-days{display:flex;}
 .player-day-input{width:25px;height:18px;text-align:center;border:1px solid #ddd;padding:1px;font-size:11px;}
-.day-average{width:25px;text-align:center;font-size:9px;color:#666;height:18px;line-height:18px;border:1px solid transparent;padding:1px;box-sizing:content-box;}
+.day-average{width:25px;text-align:center;font-size:9px;color:#666;min-height:28px;border:1px solid transparent;padding:1px;box-sizing:content-box;display:flex;flex-direction:column;justify-content:center;align-items:center;line-height:1.2;}
 .week-divider{border-left:2px solid #007bff;margin:0 5px;height:20px;}
 .add-player-btn{background-color:#28a745;color:#fff;border:none;border-radius:50%;width:30px;height:30px;font-size:20px;cursor:pointer;margin:10px 0;display:flex;align-items:center;justify-content:center;}
 .squad-average{font-weight:bold;margin:0 0 10px 5px;}
