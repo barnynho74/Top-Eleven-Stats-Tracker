@@ -814,12 +814,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const startDay=(week-1)*7;
                 const endDay=Math.min(week*7-1,27);
                 for(let i=startDay;i<=endDay;i++){
+                    const container=document.createElement('div');
+                    container.className='day-input-container';
+                    
                     const inp=document.createElement('input');
                     inp.className='player-day-input';
                     inp.type='number';
                     inp.min='0';
-                    inp.max='100';
-                    inp.value=p.progress[i]||'';
+                    inp.max='250';
+                    inp.value=p.progress[i]!==null?p.progress[i]:'';
                     inp.dataset.day=i;
                     inp.addEventListener('change',function(e){
                         e.stopPropagation();
@@ -832,7 +835,59 @@ document.addEventListener('DOMContentLoaded', () => {
                     inp.addEventListener('click',function(e){
                         e.stopPropagation();
                     });
-                    daysDiv.appendChild(inp);
+                    container.appendChild(inp);
+                    
+                    const buttonsDiv=document.createElement('div');
+                    buttonsDiv.className='day-buttons';
+                    
+                    const equalsBtn=document.createElement('button');
+                    equalsBtn.className='day-btn equals';
+                    equalsBtn.textContent='=';
+                    equalsBtn.title='Copy from previous day';
+                    equalsBtn.addEventListener('click',function(e){
+                        e.stopPropagation();
+                        const day=parseInt(inp.dataset.day);
+                        if(day>0){
+                            const prevValue=p.progress[day-1];
+                            if(prevValue!==null&&prevValue!==undefined){
+                                inp.value=prevValue;
+                                p.progress[day]=prevValue;
+                                savePlayersToLocalStorage();
+                                renderPlayers();
+                            }
+                        }
+                    });
+                    buttonsDiv.appendChild(equalsBtn);
+                    
+                    const plusBtn=document.createElement('button');
+                    plusBtn.className='day-btn plus';
+                    plusBtn.textContent='+';
+                    plusBtn.title='Add +1 from previous day';
+                    plusBtn.addEventListener('click',function(e){
+                        e.stopPropagation();
+                        const day=parseInt(inp.dataset.day);
+                        let baseValue = p.progress[day];
+                        
+                        // If current day is empty, try to get from previous day or initial quality
+                        if (baseValue === null || baseValue === undefined) {
+                            if (day > 0) {
+                                baseValue = p.progress[day-1];
+                            }
+                            // If still null (day 0 or prev day is null), use initial quality
+                            if (baseValue === null || baseValue === undefined) {
+                                baseValue = p.initialQuality;
+                            }
+                        }
+
+                        const newValue = (baseValue || 0) + 1;
+                        p.progress[day] = newValue;
+                        savePlayersToLocalStorage();
+                        renderPlayers();
+                    });
+                    buttonsDiv.appendChild(plusBtn);
+                    
+                    container.appendChild(buttonsDiv);
+                    daysDiv.appendChild(container);
                 }
                 playerWeekHeader.appendChild(daysDiv);
                 playerWeeksContainer.appendChild(playerWeekHeader);
