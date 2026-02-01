@@ -10,7 +10,7 @@ Go to the Progress tab and click the green "+" button to add players. Give them 
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-1.Minutes Tab <img width="1837" height="888" alt="image" src="https://github.com/user-attachments/assets/0f8b5162-a2e8-4226-a3b9-185b33de34c7" />
+1.Minutes Tab <img width="1837" height="888" alt="image" src="https://github.com/barnynho74/Top-Eleven-Stats-Tracker/blob/main/1%20minutes.png?raw=true" />
 
 
 After EVERY COMPETITIVE MATCH (except FA matches), enter each player’s minutes on the Minutes tab. Don’t forget the substitutes!
